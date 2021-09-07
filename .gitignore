@@ -1,0 +1,4 @@
+*.so
+*.zip
+__pycache__/
+.idea/
