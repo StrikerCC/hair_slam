@@ -34,9 +34,10 @@ def format_shiwei_txt():
         json.dump(hair_info_list, f)
 
 
-def format_data():
-    img_path = 'data/20210902153900.png'
-    data_json_path = 'data/hair_info.json'
+def format_data(img_path, data_json_path):
+    # img_path = 'data/20210902153900.png'
+    # data_json_path = 'data/hair_info.json'
+
     with open(data_json_path) as f:
         data = json.load(f)
     img_src = cv2.imread(img_path)
@@ -55,7 +56,30 @@ def dic_2_nparray(img, dict_list):
     return np.asarray(start_points), np.asarray(end_points)
 
 
+def readtxt():
+    file_path = './data/yanlin.txt'
+    f = open(file_path)
+    cam = []
+    ct = []
+    reading = cam
+
+    for line in f.readlines():
+        if '#' in line:
+            reading = ct
+            continue
+        if line == '\n':
+            continue
+        key, value = line.split(' ')
+        x, y, z = value.split(',')
+        x, y, z = float(x), float(y), float(z)
+        # print(key, x , y ,z)
+        reading.append([x, y, z])
+    print(ct)
+    print(cam)
+    return cam, ct
+
+
 if __name__ == '__main__':
     # format_shiwei_txt()
-    format_data()
+    readtxt()
 

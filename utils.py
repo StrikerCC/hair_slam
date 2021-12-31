@@ -2,7 +2,7 @@
 
 """
 @author: Cheng Chen
-@email: chengc0611@gmail.com
+@email: chengc0611qqqqqqq@gmail.com
 @time: 9/7/21 3:57 PM
 """
 import copy
@@ -18,17 +18,30 @@ def rot2d(angle):
                        [math.sin(angle), math.cos(angle)]])
 
 
-def affine2d(angle, x=0, y=0):
+def affine2d():
+    return np.array([[1.0, -0.1], [-0.1, 1.0]])
+    
+
+def rt2d(angle, x=0, y=0):
     rot = rot2d(angle)
     translation = np.asarray([[x], [y]])
     return np.concatenate([rot, translation], axis=1)
 
 
-def rotate(img, start_points, end_points, angle=math.pi / 12, flag_vis=False):
+def affinert2d(angle, x=0, y=0):
+    rot = rot2d(angle)
+    translation = np.asarray([[x], [y]])
+    affine = affine2d()
+    affiner = np.matmul(rot, affine)
+    affinert = np.concatenate([affiner, translation], axis=1)
+    return affinert
+
+
+def tsfm(img, start_points, end_points, angle=math.pi / 120, flag_vis=False):
     img_r, start_points_r, end_points_r = copy.deepcopy((img, start_points, end_points))
     start_points_r, end_points_r = np.concatenate([start_points_r, np.ones((len(start_points_r), 1))], axis=1), \
                                    np.concatenate([end_points_r, np.ones((len(end_points_r), 1))], axis=1)
-    affine = affine2d(angle, x=50, y=20)
+    affine = affinert2d(angle, x=50, y=20)
     img_r = cv2.warpAffine(img_r, M=affine, dsize=(img_r.shape[1], img_r.shape[0]))
     start_points_r = np.dot(affine, start_points_r.T).T
     end_points_r = np.dot(affine, end_points_r.T).T
@@ -64,6 +77,18 @@ def angle_between_2_vector(v1, v2):
     rot_from_v1_2_v2 = np.matmul(V2, np.linalg.inv(V1))
     rot = np.asarray([np.eye(3) for _ in range(num_point)])
     rot[:, :2, :2] = rot_from_v1_2_v2
-    # angles = [t3d.euler.mat2euler(rot[i])[-1] for i in range(num_point)] if num_point > 1 else t3d.euler.mat2euler(rot[0])[-1]
-    angles = rot[:, 0, 0] if num_point > 1 else rot[0, 0, 0]
+    angles = [t3d.euler.mat2euler(rot[i])[-1] for i in range(num_point)] if num_point > 1 else t3d.euler.mat2euler(rot[0])[-1]
+    # angles = rot[:, 0, 0] if num_point > 1 else rot[0, 0, 0]
     return angles
+
+
+def main():
+    v1, v2 = np.array([1.0,
+                       0.0]),\
+             np.array([1.0,
+                       -0.0])
+    print(angle_between_2_vector(v1, v2))
+
+
+if __name__ == '__main__':
+    main()
