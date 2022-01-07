@@ -123,7 +123,7 @@ def main():
             continue
         else:
             print('     ', pt_l, pt_r)
-        pt = camera.transform_pixel_to_world_coordiante(pt_l, pt_r)
+        pt = camera.transform_rectify_pixel_to_world_coordiante(pt_l, pt_r)
         pts.append(pt)
         print('     ', pt)
 
