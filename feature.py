@@ -7,6 +7,7 @@
 """
 import copy
 import time
+from itertools import compress
 
 import cv2
 import numpy as np
@@ -35,6 +36,59 @@ def get_checkboard_corners(img, checkboard_size, flag_vis=False):
             cv2.imshow('checkboard corners', img)
             cv2.waitKey(0)
     return corners
+
+
+def sift_features(img, flag_debug=False):
+    sift = cv2.SIFT_create()
+    kp, des = sift.detectAndCompute(img, None)
+
+    if flag_debug:
+        img_kp = cv2.drawKeypoints(img, kp, None)
+        print(len(kp))
+        print(kp[0])
+        print(des.shape)
+        cv2.namedWindow('kp', cv2.WINDOW_NORMAL)
+        cv2.imshow('kp', img_kp)
+        cv2.waitKey(0)
+
+    return kp, des
+
+
+def get_sift_pts_pair(img1, img2, flag_debug=False):
+    if img1 is None or img2 is None:
+        return None
+    kp1, des1 = sift_features(img1, flag_debug)
+    kp2, des2 = sift_features(img2, flag_debug)
+    bf = cv2.BFMatcher_create()
+    matches = bf.knnMatch(des1, des2, k=2)
+
+    '''filter with feature value ambiguity'''
+    good_matches = [first for first, second in matches if first.distance < 0.85 * second.distance]
+
+    pts1 = np.float32([kp1[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+    pts2 = np.float32([kp2[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+
+    print('feature value ambiguity', len(good_matches), '/', len(matches), 'points left')
+
+    '''filter with epi-polar geometry ransac'''
+    F, mask = cv2.cv2.findFundamentalMat(pts1, pts2, cv2.cv2.FM_RANSAC, ransacReprojThreshold=2.0, confidence=0.4,
+                                         maxIters=100)
+
+    good_matches = list(compress(good_matches, mask.squeeze().astype(bool).tolist()))
+    pts1 = pts1[mask.astype(bool)]
+    pts2 = pts2[mask.astype(bool)]
+    print('epi-polar geometry ransac', len(good_matches), '/', len(matches), len(pts1), '/', len(matches), len(pts2), '/', len(matches), 'points left')
+
+    '''statistics'''
+
+    if flag_debug:
+        print('Get ', len(good_matches), ' good matches')
+        img3 = cv2.drawMatches(img1, kp1, img2, kp2, good_matches, None, flags=2)
+        cv2.namedWindow('match', cv2.WINDOW_NORMAL)
+        cv2.imshow('match', img3)
+        cv2.waitKey(0)
+
+    return pts1, pts2
 
 
 def compute_fpf(img, start_points, end_points, num_neighbor):

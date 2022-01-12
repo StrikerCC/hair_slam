@@ -5,14 +5,34 @@
 @email: chengc0611@gmail.com
 @time: 11/16/21 10:09 AM
 """
-from camera import BiCamera
+from cam import StereoCamera
 import cv2.cv2
 import numpy as np
 import open3d as o3
 
 
+def umeyama(src, tgt):
+    if src.shape[0] != 3:
+        src = src.reshape(3, -1)
+    if tgt.shape[0] != 3:
+        tgt = tgt.reshape(3, -1)
+
+    tf = np.eye(len(src) + 1)
+    # rotation
+    src_tgt_cov = np.matmul(tgt-np.expand_dims(np.mean(tgt, axis=1), axis=1), np.transpose(src-np.expand_dims(np.mean(src, axis=1), axis=1)))
+    u, lam, vt = np.linalg.svd(src_tgt_cov)
+    s = np.eye(len(src))
+    if np.linalg.det(u) * np.linalg.det(vt) < -0.5:
+        s[-1, -1] = -1.0
+    tf[:len(src), :len(src)] = np.matmul(np.matmul(u, s), vt)
+
+    # translation
+    tf[:-1, -1] = np.mean(np.matmul(tf[:len(src), :len(src)], src), axis=1) - np.mean(tgt, axis=1)
+    return tf
+
+
 def main():
-    camera = BiCamera('/home/cheng/proj/3d/BiCameraSDKv2.0/test_data/saved_parameters.xml')
+    camera = StereoCamera()
     src_l, src_r = cv2.cv2.imread('/home/cheng/proj/3d/BiCameraSDKv2.0/test_data/calibration_data/left/02.bmp'), \
                    cv2.cv2.imread('/home/cheng/proj/3d/BiCameraSDKv2.0/test_data/calibration_data/right/02.bmp')
 

@@ -45,6 +45,7 @@ def stereo_calibrate(square_size, checkboard_size, left_img_paths, right_img_pat
     chessboard_corners = [chessboard_corners] * len(left_img_paths)
 
     # corner coord in camera frame
+    print('looking for all checkboard corners')
     for i, (left_img_name, right_img_name) in enumerate(zip(left_img_paths, right_img_paths)):
         img_left, img_right = cv2.imread(left_img_name), cv2.imread(right_img_name)
         img_left, img_right = cv2.cvtColor(img_left, cv2.COLOR_BGR2GRAY), cv2.cvtColor(img_right, cv2.COLOR_BGR2GRAY)
@@ -53,6 +54,8 @@ def stereo_calibrate(square_size, checkboard_size, left_img_paths, right_img_pat
 
         if i == 0:
             img_size = (img_left.shape[1], img_left.shape[0])
+        print('get ', i, '/'+str(len(left_img_paths)))
+    print('get all checkboard corners')
     # pts_2d_left, pts_2d_right = np.asarray(pts_2d_left), np.asarray(pts_2d_right)
 
     '''calibrate each camera'''

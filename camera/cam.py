@@ -20,6 +20,8 @@ class PinHoleCamera:
         self.distortion_coefficient = None
         self.map_undistort = None
         self.map_rectify = None
+        self.rotation_rectify = None
+        self.camera_matrix_rectify = None
 
     def proj(self, pts_3d):
         """
@@ -41,14 +43,25 @@ class PinHoleCamera:
     def undistort_rectify_pts(self, pts_2d):
         """
 
-        :param pts_2d: x, y coord in opencv format
+        :param pts_2d: x, y raw coord in opencv format
         :return:
         """
         if pts_2d.shape[1] == 2:
             pts_2d = pts_2d.T
-        pts_2d = pts_2d.reshape(2, -1).astype(int)[::-1, :]
-        pts_2d_rectified = self.map_rectify[pts_2d.tolist()]
-        return pts_2d_rectified[::-1, :]
+
+        # pts_2d = pts_2d.reshape(2, -1).astype(int)[::-1, :]
+        # pts_2d_rectified = self.map_rectify[pts_2d.tolist()]
+
+        pts_2d_rectified = cv2.undistortPoints(src=pts_2d, cameraMatrix=self.camera_matrix,
+                                               distCoeffs=self.distortion_coefficient, R=self.rotation_rectify,
+                                               P=self.camera_matrix_rectify)
+
+        # pts_2d = pts_2d.reshape(2, -1).astype(float)
+        #
+        # pts_2d_homo = np.vstack([pts_2d, np.ones((1, pts_2d.shape[1]))])
+        #
+        # pts_2d_rectified = np.matmul(self.camera_matrix, pts_2d_homo)
+        return pts_2d_rectified
 
     def undistort_rectify_img(self, img):
         return cv2.remap(img, map1=self.map_rectify[:, :, 0], map2=self.map_rectify[:, :, 1],
@@ -112,6 +125,8 @@ class BiCamera:
             newCameraMatrix=rectified_camera_matrix_left,
             size=self.img_size,
             m1type=cv2.CV_32FC1)
+        self.cam_left.rotation_rectify = rectify_rotation_left
+        self.cam_left.camera_matrix_rectify = rectified_camera_matrix_left
         self.cam_left.map_rectify = np.asarray([map_undistort, map_rectify]).transpose((1, 2, 0))
 
         map_undistort, map_rectify = cv2.initUndistortRectifyMap(
@@ -121,9 +136,15 @@ class BiCamera:
             newCameraMatrix=rectified_camera_matrix_right,
             size=self.img_size,
             m1type=cv2.CV_32FC1)
+        self.cam_right.rotation_rectify = rectify_rotation_right
+        self.cam_right.camera_matrix_rectify = rectified_camera_matrix_right
         self.cam_right.map_rectify = np.asarray([map_undistort, map_rectify]).transpose((1, 2, 0))
         self.Q = Q
+        print('left_camera_reprojection_error', params["left_camera_re-projection_error"])
+        print("right_camera_reprojection_error", params['right_camera_re-projection_error'])
+        print("stereo_camera_reprojection_error", params["stereo_camera_re-projection_error"])
         print('undistortion and rectify mapping set in ', time.time() - time_start, 'second')
+        return True
 
     def transform_rectify_pixel_to_world_coordiante(self, pt_2d_left, pt_2d_right):
         pt_2d_left, pt_2d_right = pt_2d_left.reshape(-1, 2), pt_2d_right.reshape(-1, 2)
