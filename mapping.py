@@ -5,17 +5,72 @@
 @email: chengc0611@gmail.com
 @time: 11/16/21 10:09 AM
 """
+import random
 from cam import StereoCamera
 import cv2.cv2
 import numpy as np
 import open3d as o3
+import transforms3d as tf3
+
+
+def transform_pt_3d(tf, pts):
+    assert tf.shape == (4, 4)
+    if pts.shape[0] == 3:
+        return np.matmul(tf[:3, :3], pts) + tf[:3, -1:]
+    elif pts.shape[1] == 3:
+        return np.matmul(pts, tf[:3, :3].T) + tf[:3, -1:].T
+    else:
+        raise ValueError('input points shape invalid, expect (n, 3) or (3, n), but get ' + str(pts.shape))
+
+
+def umeyama_ransac(src, tgt, max_iter=100, confidence=0.9, max_error=0.5):  # compute tf by common pts
+    if src.shape[1] != 3:
+        src = src.T
+    if tgt.shape[1] != 3:
+        tgt = tgt.T
+    assert src.shape[1] == 3 and tgt.shape[1] == 3, str(src.shape) + ', ' + str(src.shape)
+
+    num_match_pts = 4
+
+    max_inlier_ratio = 0.0
+    tf_best = None
+
+    index_list = np.arange(0, len(src))
+    for iter in range(max_iter):
+        index = np.random.choice(index_list, num_match_pts, replace=False).tolist()  # random pick
+
+        # compute tf
+        tf = umeyama(src=src[index].T, tgt=tgt[index].T)
+
+        # compute inlier ratio
+        error = np.linalg.norm(tgt - transform_pt_3d(tf, src), axis=-1)      # Manhattan distance
+        inlier_ratio = np.count_nonzero(error < max_error) / len(src)
+
+        # break if needed
+        if inlier_ratio > confidence:
+            return tf
+
+        # update max
+        if inlier_ratio >= max_inlier_ratio:
+            max_inlier_ratio = inlier_ratio
+            tf_best = tf
+
+        print(index)
+        print(inlier_ratio)
+        print(error)
+        print(tf3.euler.mat2euler(tf[:3, :3]))
+        print(tf[:3, -1])
+        print()
+
+    return tf_best
 
 
 def umeyama(src, tgt):
     if src.shape[0] != 3:
-        src = src.reshape(3, -1)
+        src = src.T
     if tgt.shape[0] != 3:
-        tgt = tgt.reshape(3, -1)
+        tgt = tgt.T
+    assert src.shape[0] == 3 and tgt.shape[0] == 3, str(src.shape) + ', ' + str(src.shape)
 
     tf = np.eye(len(src) + 1)
     # rotation
@@ -27,146 +82,39 @@ def umeyama(src, tgt):
     tf[:len(src), :len(src)] = np.matmul(np.matmul(u, s), vt)
 
     # translation
-    tf[:-1, -1] = np.mean(np.matmul(tf[:len(src), :len(src)], src), axis=1) - np.mean(tgt, axis=1)
+    tf[:-1, -1] = np.mean(tgt, axis=1) - np.mean(np.matmul(tf[:len(src), :len(src)], src), axis=1)
     return tf
 
 
 def main():
-    camera = StereoCamera()
-    src_l, src_r = cv2.cv2.imread('/home/cheng/proj/3d/BiCameraSDKv2.0/test_data/calibration_data/left/02.bmp'), \
-                   cv2.cv2.imread('/home/cheng/proj/3d/BiCameraSDKv2.0/test_data/calibration_data/right/02.bmp')
+    pts = np.random.random((30, 3))
+    # pts = np.vstack([pts, pts+1, pts+2])
 
-    # src_l, src_r = cv2.cv2.imread('/home/cheng/proj/3d/BiCameraSDKv2.0/data/LeftCamera/005.bmp'), \
-    #                cv2.cv2.imread('/home/cheng/proj/3d/BiCameraSDKv2.0/data/RightCamera/005.bmp')
+    angle_gt = (1, 1, 1)
+    tf_gt = np.eye(4)
+    tf_gt[:3, :3] = tf3.euler.euler2mat(*angle_gt)
+    tf_gt[:3, -1] = (10, 0, 0)
 
-    imagesize = src_l.shape[:-1]
-    imagesize_rect = (int(src_l.shape[0] * 1.8), int(src_l.shape[1] * 1.2))
+    # print(pts)
 
-    cv2.cv2.namedWindow('left', cv2.cv2.WINDOW_NORMAL)
-    cv2.cv2.namedWindow('right', cv2.cv2.WINDOW_NORMAL)
-    cv2.cv2.imshow('left', src_l)
-    cv2.cv2.imshow('right', src_r)
-    cv2.cv2.waitKey(0)
-    cv2.cv2.destroyAllWindows()
+    # tf
+    pts_tgt = transform_pt_3d(tf_gt, pts)
 
-    '''undistorted image'''
-    undest_l = cv2.cv2.undistort(src_l, camera.leftCameraMatrix, distCoeffs=camera.leftDistCoeffs)
-    undest_r = cv2.cv2.undistort(src_r, camera.rightCameraMatrix, distCoeffs=camera.rightDistCoeffs)
+    # compute tf
+    tf = umeyama_ransac(src=pts, tgt=pts_tgt)
+    angle = tf3.euler.mat2euler(tf[:3, :3])
 
-    cv2.cv2.namedWindow('left', cv2.cv2.WINDOW_NORMAL)
-    cv2.cv2.namedWindow('right', cv2.cv2.WINDOW_NORMAL)
-    cv2.cv2.imshow('left', undest_l)
-    cv2.cv2.imshow('right', undest_r)
-    cv2.cv2.waitKey(0)
-    cv2.cv2.destroyAllWindows()
-
-    '''rectify image'''
-    R_l, R_r, P_l, P_r, *_ = cv2.cv2.stereoRectify(camera.leftCameraMatrix, camera.leftDistCoeffs, camera.rightCameraMatrix, camera.rightDistCoeffs, imagesize_rect, camera.R, camera.T)
-    rect_map_x_l, rect_map_y_l = cv2.cv2.initUndistortRectifyMap(camera.leftCameraMatrix, camera.leftDistCoeffs, R_l, P_l, imagesize_rect, cv2.cv2.CV_32FC1)
-    rect_map_x_r, rect_map_y_r = cv2.cv2.initUndistortRectifyMap(camera.rightCameraMatrix, camera.rightDistCoeffs, R_r, P_r, imagesize_rect, cv2.cv2.CV_32FC1)
-
-    '''apply mappping'''
-    img_l = cv2.cv2.remap(src_l, rect_map_x_l, rect_map_y_l, cv2.cv2.INTER_LINEAR)
-    img_r = cv2.cv2.remap(src_r, rect_map_x_r, rect_map_y_r, cv2.cv2.INTER_LINEAR)
-
-    cv2.cv2.namedWindow('left', cv2.cv2.WINDOW_NORMAL)
-    cv2.cv2.namedWindow('right', cv2.cv2.WINDOW_NORMAL)
-    cv2.cv2.imshow('left', img_l)
-    cv2.cv2.imshow('right', img_r)
-    cv2.cv2.waitKey(0)
-    cv2.cv2.destroyAllWindows()
-
-    '''extract feature'''
-    feat_detector = cv2.cv2.SIFT_create()
-    keypoints_l, feat_l = feat_detector.detectAndCompute(img_l, None)
-    keypoints_r, feat_r = feat_detector.detectAndCompute(img_r, None)
-
-    # drawing the key points on the input image using drawKeypoints() function
-    resultimage_l = cv2.cv2.drawKeypoints(img_l, keypoints_l, 0, (0, 255, 0), flags=cv2.cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-    resultimage_r = cv2.cv2.drawKeypoints(img_r, keypoints_r, 0, (0, 255, 0), flags=cv2.cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-
-    # displaying the image with keypoints as the output on the screen
-    cv2.cv2.namedWindow('left_image_with_keypoints', cv2.cv2.WINDOW_NORMAL)
-    cv2.cv2.namedWindow('right_image_with_keypoints', cv2.cv2.WINDOW_NORMAL)
-    cv2.cv2.imshow('left_image_with_keypoints', resultimage_l)
-    cv2.cv2.imshow('right_image_with_keypoints', resultimage_r)
-    cv2.cv2.waitKey(0)
-
-    # BFMatcher解决匹配
-    bf = cv2.cv2.BFMatcher()
-    matches = bf.knnMatch(feat_l, feat_r, k=2)
-
-    '''filter match'''
-    good = []
-    better = []
-    pts_l = []
-    pts_r = []
-    for m, n in matches:
-        if m.distance < 1.75 * n.distance:
-            good.append([m])
-            pts_l.append(keypoints_l[m.queryIdx].pt)
-            pts_r.append(keypoints_r[n.trainIdx].pt)
-
-    pts_l = np.int32(pts_l)
-    pts_r = np.int32(pts_r)
-    F, mask = cv2.cv2.findFundamentalMat(pts_l, pts_r, cv2.cv2.FM_RANSAC, ransacReprojThreshold=1.0, confidence=0.99,
-                                         maxIters=1000)
-    mask_ = mask.ravel() == 1
-    for i in range(len(mask_)):
-        if mask_[i] == 1:
-            better.append(good[i])
-    pts_l = pts_l[mask_]
-    pts_r = pts_r[mask_]
-
-    pts_l_homo = np.concatenate([pts_l, np.ones((pts_l.shape[0], 1))], axis=-1)
-    pts_r_homo = np.concatenate([pts_r, np.ones((pts_r.shape[0], 1))], axis=-1)
-    error = np.trace(np.matmul(pts_r_homo.T, np.matmul(pts_l_homo, F))) / pts_r_homo.shape[0]
-    print("Before filter", len(good))
-    print("After filter", len(better))
-    print(error)
-
-    img4 = cv2.cv2.drawMatchesKnn(img_l, keypoints_l, img_r, keypoints_r, good, None, flags=2)
-    img5 = cv2.cv2.drawMatchesKnn(img_l, keypoints_l, img_r, keypoints_r, better, None, flags=2)
-
-    cv2.cv2.namedWindow("BFmatch", cv2.cv2.WINDOW_NORMAL)
-    cv2.cv2.imshow("BFmatch", img4)
-    cv2.cv2.namedWindow("BFmatchFiltered", cv2.cv2.WINDOW_NORMAL)
-    cv2.cv2.imshow("BFmatchFiltered", img5)
-    cv2.cv2.waitKey(0)
-    cv2.cv2.destroyAllWindows()
-
-    '''compute depth'''
-    pts = []
-    for pt_l, pt_r in zip(pts_l, pts_r):
-        if abs(pt_l[1] - pt_r[1]) > 10.0:
-            print(pt_l, pt_r)
-            continue
-        else:
-            print('     ', pt_l, pt_r)
-        pt = camera.transform_rectify_pixel_to_world_coordiante(pt_l, pt_r)
-        pts.append(pt)
-        print('     ', pt)
-
-    print('Final ', len(pts))
-    print(pts)
-    '''show the depth'''
-    objs = []
-    mesh = o3.geometry.TriangleMesh()
-    origin = mesh.create_coordinate_frame(size=10.0)
-    objs.append(origin)
-
-    # for pt in pts:
-    #     org = mesh.create_coordinate_frame(size=10.0, origin=pt)
-    #     objs.append(org)
-
-    pts = np.asarray(pts)
-    pc = o3.geometry.PointCloud()
-    pc.points = o3.utility.Vector3dVector(pts)
-    objs.append(pc)
-    o3.visualization.draw_geometries(objs)
+    print(pts_tgt)
+    print(transform_pt_3d(tf, pts))
+    print(np.allclose(pts_tgt, transform_pt_3d(tf, pts)))
+    print(angle_gt)
+    print(tf_gt[:3, -1])
+    print(angle)
+    print(tf[:3, -1])
 
     return
 
 
 if __name__ == '__main__':
     main()
+

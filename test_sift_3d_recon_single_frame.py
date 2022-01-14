@@ -62,7 +62,7 @@ def main():
             print('get checkboard corners in', time.time() - time_start, 'seconds')
 
         time_start = time.time()
-        general_pts_2d_left, general_pts_2d_right = feature.get_sift_pts_pair(img_left, img_right, flag_debug=True)
+        general_pts_2d_left, general_pts_2d_right = feature.get_pts_pair_by_sift(img_left, img_right, flag_debug=True)
         print('get features in', time.time() - time_start, 'seconds')
 
         # compute feature 3d coord

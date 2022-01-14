@@ -54,19 +54,20 @@ def sift_features(img, flag_debug=False):
     return kp, des
 
 
-def get_sift_pts_pair(img1, img2, flag_debug=False):
-    if img1 is None or img2 is None:
-        return None
-    kp1, des1 = sift_features(img1, flag_debug)
-    kp2, des2 = sift_features(img2, flag_debug)
+# def match_filter_pts_pair(kp1, des1, kp2, des2):
+def match_filter_pts_pair(pts1, des1, pts2, des2):
     bf = cv2.BFMatcher_create()
     matches = bf.knnMatch(des1, des2, k=2)
 
     '''filter with feature value ambiguity'''
     good_matches = [first for first, second in matches if first.distance < 0.85 * second.distance]
+    index_match = np.asarray([[m.queryIdx, m.trainIdx] for m in good_matches])
 
-    pts1 = np.float32([kp1[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
-    pts2 = np.float32([kp2[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+    pts1 = pts1[index_match[:, 0].tolist()]     # queryIdx
+    des1 = des1[index_match[:, 0]]
+
+    pts2 = pts2[index_match[:, 1].tolist()]     # trainIdx
+    des2 = des2[index_match[:, 1]]
 
     print('feature value ambiguity', len(good_matches), '/', len(matches), 'points left')
 
@@ -74,20 +75,53 @@ def get_sift_pts_pair(img1, img2, flag_debug=False):
     F, mask = cv2.cv2.findFundamentalMat(pts1, pts2, cv2.cv2.FM_RANSAC, ransacReprojThreshold=2.0, confidence=0.4,
                                          maxIters=100)
 
-    good_matches = list(compress(good_matches, mask.squeeze().astype(bool).tolist()))
-    pts1 = pts1[mask.astype(bool)]
-    pts2 = pts2[mask.astype(bool)]
-    print('epi-polar geometry ransac', len(good_matches), '/', len(matches), len(pts1), '/', len(matches), len(pts2), '/', len(matches), 'points left')
+    mask_ = mask.squeeze().astype(bool).tolist()
+
+    index_match = index_match[mask_]
+    index_match_set = set(index_match[:, 0].tolist())
+
+    pts1 = pts1[mask_]
+    des1 = des1[mask_]
+    pts2 = pts2[mask_]
+    des2 = des2[mask_]
+
+    good_matches = [m for m in good_matches if m.queryIdx in index_match_set]
+
+    print('epi-polar geometry ransac', len(good_matches), '/', len(matches), 'points left, epi-polar rms',
+          np.mean(np.sum(np.matmul(np.hstack([pts1, np.ones((len(pts1), 1))]), F)*np.hstack([pts2, np.ones((len(pts1), 1))]), axis=1)))
+
+    return pts1, des1, pts2, des2, index_match, good_matches
+
+
+def get_sift_and_pts(img1, img2, flag_debug=False):
+    if img1 is None or img2 is None:
+        return None
+
+    shrink = 4.0
+    img1_sub = cv2.resize(img1, (int(img1.shape[1] / shrink), int(img1.shape[0] / shrink)))
+    img2_sub = cv2.resize(img2, (int(img2.shape[1] / shrink), int(img2.shape[0] / shrink)))
+
+    kp1, des1 = sift_features(img1_sub, flag_debug)
+    kp2, des2 = sift_features(img2_sub, flag_debug)
+
+    pts1 = np.float32([kp.pt for kp in kp1]).reshape(-1, 2) * shrink
+    pts2 = np.float32([kp.pt for kp in kp2]).reshape(-1, 2) * shrink
+
+    # pts1, des1, pts2, des2, good_matches = match_filter_pts_pair(kp1, des1, kp2, des2)
+    pts1, des1, pts2, des2, index_match, good_matches = match_filter_pts_pair(pts1, des1, pts2, des2)
 
     '''statistics'''
-
     if flag_debug:
         print('Get ', len(good_matches), ' good matches')
-        img3 = cv2.drawMatches(img1, kp1, img2, kp2, good_matches, None, flags=2)
+        img3 = vis.draw_matches(img1, pts1, img2, pts2)
         cv2.namedWindow('match', cv2.WINDOW_NORMAL)
         cv2.imshow('match', img3)
         cv2.waitKey(0)
+    return pts1, des1, pts2, des2
 
+
+def get_pts_pair_by_sift(img1, img2, flag_debug=False):
+    pts1, des1, pts2, des2, good_matches = get_sift_and_pts(img1, img2, flag_debug)
     return pts1, pts2
 
 
