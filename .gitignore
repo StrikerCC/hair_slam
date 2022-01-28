@@ -1,7 +1,7 @@
 *.so
 *.zip
 __pycache__/
-__pycache__/utils.cpython-38.pyc
+*.pyc
 .idea/
 data/
 *.png
