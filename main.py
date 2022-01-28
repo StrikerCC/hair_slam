@@ -7,9 +7,9 @@ import copy
 import cv2.cv2
 import numpy as np
 import matplotlib.pyplot as plt
-import read
-import vis
-from read import readtxt
+import slam_lib.read
+import slam_lib.vis
+from slam_lib.read import readtxt
 import open3d as o3
 
 
@@ -102,15 +102,15 @@ def main():
     # img_l = cv2.cv2.imread('/home/cheng/proj/3d/hair_host/bin/left.jpg')
     # img_r = cv2.cv2.imread('/home/cheng/proj/3d/hair_host/bin/right.jpg')
 
-    img_l, data_l = read.format_data(img_path='/home/cheng/proj/3d/hair_host/bin/left.jpg',
+    img_l, data_l = slam_lib.read.format_data(img_path='/home/cheng/proj/3d/hair_host/bin/left.jpg',
                                      data_json_path='/home/cheng/proj/3d/hair_host/bin/left_hair_info.json')
     img_l_copy = copy.deepcopy(img_l)
-    vis.draw_lines(img_l_copy, data_l, 'l')
+    slam_lib.vis.draw_lines(img_l_copy, data_l, 'l')
 
-    img_r, data_r = read.format_data(img_path='/home/cheng/proj/3d/hair_host/bin/right.jpg',
+    img_r, data_r = slam_lib.read.format_data(img_path='/home/cheng/proj/3d/hair_host/bin/right.jpg',
                                      data_json_path='/home/cheng/proj/3d/hair_host/bin/right_hair_info.json')
     img_r_copy = copy.deepcopy(img_r)
-    vis.draw_lines(img_r_copy, data_r, 'r')
+    slam_lib.vis.draw_lines(img_r_copy, data_r, 'r')
     # F = computeF(img_l, img_r)
 
     '''take key points to np array'''

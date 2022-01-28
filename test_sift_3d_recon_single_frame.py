@@ -11,37 +11,38 @@ import cv2
 import numpy as np
 import open3d as o3
 
-import dataset
-import feature
-from camera.cam import BiCamera
-from camera.calibration import stereo_calibrate
+import slam_lib.dataset
+import slam_lib.feature
+from slam_lib.camera.cam import BiCamera
+from slam_lib.camera.calibration import stereo_calibrate
+import slam_lib.mapping
 
 
 def main():
     """calibration and 3d reconstruction"""
 
     # calibration
-    square_size = 3.0
+    square_size = 1.0
     checkboard_size = (11, 8)  # (board_width, board_height)
     flag_reconstruct_checkboard = False
 
-    dataset_dir = '/home/cheng/Pictures/data/202201111639/'
-    data = dataset.get_calibration_and_img(dataset_dir)
+    dataset_dir = '/home/cheng/Pictures/data/202201181745/'
+    data = slam_lib.dataset.get_calibration_and_img(dataset_dir)
 
     '''shorten calibration data'''
-    data['left_calibration_img'], data['right_calibration_img'] = data['left_calibration_img'][:5], \
-                                                                  data['right_calibration_img'][:5]
+    data['left_calibration_img'], data['right_calibration_img'] = data['left_calibration_img'], \
+                                                                  data['right_calibration_img']
 
     for key in data.keys():
         print(key, 'has')
         for img_dir in data.get(key):
             print('     ', img_dir)
 
-    binocular = BiCamera('./config/bicam_cal_para.json')
-    # binocular = BiCamera()
-    # stereo_calibrate(square_size, checkboard_size, data['left_calibration_img'], data['right_calibration_img'],
-    #                  binocular=binocular,
-    #                  file_path_2_save='./config/bicam_cal_para.json')
+    # binocular = BiCamera('./config/bicam_cal_para.json')
+    binocular = BiCamera()
+    stereo_calibrate(square_size, checkboard_size, data['left_calibration_img'], data['right_calibration_img'],
+                     binocular=binocular,
+                     file_path_2_save='./config/bicam_cal_para.json')
 
     print('calibration result')
     print(binocular.cam_left.camera_matrix)
@@ -57,12 +58,12 @@ def main():
         # extract feature
         time_start = time.time()
         if flag_reconstruct_checkboard:
-            checkboard_pts_2d_left = feature.get_checkboard_corners(img_left, checkboard_size)
-            checkboard_pts_2d_right = feature.get_checkboard_corners(img_right, checkboard_size)
+            checkboard_pts_2d_left = slam_lib.feature.get_checkboard_corners(img_left, checkboard_size)
+            checkboard_pts_2d_right = slam_lib.feature.get_checkboard_corners(img_right, checkboard_size)
             print('get checkboard corners in', time.time() - time_start, 'seconds')
 
         time_start = time.time()
-        general_pts_2d_left, general_pts_2d_right = feature.get_pts_pair_by_sift(img_left, img_right, flag_debug=True)
+        general_pts_2d_left, general_pts_2d_right = slam_lib.feature.get_pts_pair_by_sift(img_left, img_right, flag_debug=True)
         print('get features in', time.time() - time_start, 'seconds')
 
         # compute feature 3d coord

@@ -1,3 +1,4 @@
 [submodule "slam_lib"]
 	path = slam_lib
 	url = git@github.com:StrikerCC/slam_lib.git
+	branch = main
