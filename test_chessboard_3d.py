@@ -16,6 +16,7 @@ import slam_lib.feature
 from slam_lib.camera.cam import BiCamera
 from slam_lib.camera.calibration import stereo_calibrate
 import slam_lib.mapping
+import slam_lib.vis
 
 
 def main():
@@ -25,12 +26,14 @@ def main():
     square_size = 3.0
     checkboard_size = (11, 8)  # (board_width, board_height)
 
-    dataset_dir = '/home/cheng/Pictures/data/202201171444'
-    data = slam_lib.dataset.get_calibration_and_img(dataset_dir)
+    dataset_dir = '/home/cheng/Pictures/data/202201251506'
+    data = slam_lib.dataset.get_calibration_and_img(dataset_dir, right_img_dir_name='global')
     stereo = BiCamera('./config/bicam_cal_para.json')
 
+    # stereo = BiCamera()
     # stereo_calibrate(square_size, checkboard_size, data['left_calibration_img'], data['right_calibration_img'], binocular=stereo,
     #                  file_path_2_save='./config/bicam_cal_para.json')
+
     # binocular = BiCamera('./config/bicam_cal_para.json')
 
     print('calibration result')
@@ -48,8 +51,8 @@ def main():
 
         # extract feature
         time_start = time.time()
-        pts_2d_left = slam_lib.feature.get_checkboard_corners(gray_left, checkboard_size)
-        pts_2d_right = slam_lib.feature.get_checkboard_corners(gray_right, checkboard_size)
+        pts_2d_left = slam_lib.feature.get_checkboard_corners(gray_left, checkboard_size, flag_vis=False)
+        pts_2d_right = slam_lib.feature.get_checkboard_corners(gray_right, checkboard_size, flag_vis=False)
 
         # pts_2d_left_rectified = feature.get_checkboard_corners(img_left_rectified, checkboard_size)
         # pts_2d_right_rectified = feature.get_checkboard_corners(img_right_rectified, checkboard_size)
@@ -89,6 +92,14 @@ def main():
         # pts_2d_general_skin_in_right = stereo.cam_right.proj_and_distort(pts_3d_general_skin_in_right) # projection
 
         # vis skin points in local and global
+        # draw match
+        end = 5
+        img_match = slam_lib.vis.draw_matches(gray_left, pts_2d_left[:end], gray_right, pts_2d_right[:end])
+        cv2.namedWindow('checkboard points match', cv2.WINDOW_NORMAL)
+        cv2.imshow('checkboard points match', img_match)
+        cv2.waitKey(0)
+
+        # draw reprojection
         for pts_2d in pts_2d_reproject_in_left[:, 0, :]:
             pts_2d = pts_2d.astype(int)
             img_left = cv2.circle(img_left, center=pts_2d, radius=15, color=(0, 0, 255), thickness=5)
@@ -116,7 +127,7 @@ def main():
         frame_right.transform(np.linalg.inv(tf_left_2_right))
 
         pc_general_left = o3.geometry.PointCloud()
-        pc_general_left.points = o3.utility.Vector3dVector(pts_3d_in_left)
+        # pc_general_left.points = o3.utility.Vector3dVector(pts_3d_in_left)
 
         pc_general_right = o3.geometry.PointCloud()
         # pc_general_right.points = o3.utility.Vector3dVector(mapping.transform_pt_3d(tf_left_2_right, pts_3d_in_left))
