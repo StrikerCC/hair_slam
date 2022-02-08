@@ -62,7 +62,7 @@ def main():
         #     if pts_2d_right_rectified is None: print('feature missed in right rectification')
         #     continue
         # compute feature 3d coord
-        pts_3d_from_raw = binocular.transform_raw_pixel_to_world_coordiante(pts_2d_left, pts_2d_right)
+        pts_3d_from_raw = binocular.correspondence_to_3d_in_left_rectify(pts_2d_left, pts_2d_right)
         # pts_3d_from_rect = binocular.transform_rectify_pixel_to_world_coordiante(pts_2d_left_rectified,
         #                                                                          pts_2d_right_rectified)
 

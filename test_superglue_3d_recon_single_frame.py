@@ -110,7 +110,7 @@ def main():
 
         # compute feature 3d coord
         pts_2d_left, pts_2d_right = slam_lib.mapping.scale_pts(scales0, mkpts_left), slam_lib.mapping.scale_pts(scales1, mkpts_right)
-        general_pts_3d = binocular.transform_raw_pixel_to_world_coordiante(pts_2d_left, pts_2d_right)
+        general_pts_3d = binocular.correspondence_to_3d_in_left_rectify(pts_2d_left, pts_2d_right)
 
         # get color for 3d feature points
         pts_color = (img_org_left[pts_2d_left.T[::-1].astype(int).tolist()] + img_org_right[pts_2d_right.T[::-1].astype(int).tolist()])[::-1] / 2 / 255.0   # take average of left and right bgr, then convert to normalized rgb

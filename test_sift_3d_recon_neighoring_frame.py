@@ -63,7 +63,7 @@ def main():
         print('get features in', time.time() - time_start, 'seconds')
 
         # compute feature 3d coord
-        pts_3d = binocular.transform_raw_pixel_to_world_coordiante(pts_2d_left, pts_2d_right)
+        pts_3d = binocular.correspondence_to_3d_in_left_rectify(pts_2d_left, pts_2d_right)
 
         # get color for 3d feature points
         pts_color = (img_left[pts_2d_left.T[::-1].astype(int).tolist()] + img_right[pts_2d_right.T[::-1].astype(int).tolist()])[::-1] / 2 / 255.0   # take average of left and right bgr, then convert to normalized rgb

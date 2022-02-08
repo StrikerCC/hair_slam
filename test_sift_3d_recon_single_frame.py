@@ -68,9 +68,9 @@ def main():
 
         # compute feature 3d coord
         if flag_reconstruct_checkboard:
-            checkboard_pts_3d = binocular.transform_raw_pixel_to_world_coordiante(checkboard_pts_2d_left,
-                                                                                  checkboard_pts_2d_right)
-        general_pts_3d = binocular.transform_raw_pixel_to_world_coordiante(general_pts_2d_left, general_pts_2d_right)
+            checkboard_pts_3d = binocular.correspondence_to_3d_in_left_rectify(checkboard_pts_2d_left,
+                                                                               checkboard_pts_2d_right)
+        general_pts_3d = binocular.correspondence_to_3d_in_left_rectify(general_pts_2d_left, general_pts_2d_right)
 
         # statistics
         if flag_reconstruct_checkboard:
