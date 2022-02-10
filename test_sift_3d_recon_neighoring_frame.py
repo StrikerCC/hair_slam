@@ -58,7 +58,7 @@ def main():
 
         # extract feature
         time_start = time.time()
-        pts_2d_left, sift_left, pts_2d_right, sift_right = feature.get_sift_and_pts(gray_left, gray_right, flag_debug=True)
+        pts_2d_left, sift_left, pts_2d_right, sift_right = slam_lib.feature.get_epipolar_geometry_filtered_sift_matched_pts(gray_left, gray_right, flag_debug=True)
 
         print('get features in', time.time() - time_start, 'seconds')
 
@@ -72,11 +72,13 @@ def main():
 
         # tracking
         if i > 0:
-            pts1, des1, pts2, des2, index_match, good_matches = slam_lib.feature.match_filter_pts_pair(last_frame['pts_2d_left'], last_frame['sift_left'], pts_2d_left, sift_left)
+            pts1, des1, pts2, des2, index_match = slam_lib.feature.match_sift_feats(last_frame['pts_2d_left'], last_frame['sift_left'], pts_2d_left, sift_left)
+            pts1, des1, pts2, des2, mask = slam_lib.feature.epipolar_geometry_filter_matched_pts_pair(pts1, des1, pts2, des2)
+            index_match = index_match[mask]
             tf = slam_lib.mapping.umeyama_ransac(src=last_frame['pts_3d'][index_match[:, 0]], tgt=pts_3d[index_match[:, 1]])     # compute tf by common pts
 
             print('>>>>>>>>>>>>>>>>>>>>>>>> tracking ')
-            print('fusion get ', len(good_matches), ' good matches')
+            print('fusion get ', len(index_match), ' good matches')
             print(len(index_match), 'common pts between frame ')
             print('rotation', tf3.euler.mat2euler(tf[:3, :3]), '\ntranslation', tf[:3, -1])
             print('<<<<<<<<<<<<<<<<<<<<<<<< tracking ')

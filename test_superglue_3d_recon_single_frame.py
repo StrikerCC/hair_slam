@@ -129,9 +129,9 @@ def main():
 
         # tracking
         if i > 0:
-            pts1, des1, pts2, des2, index_match, good_matches = slam_lib.feature.match_filter_pts_pair(last_frame['pts_2d_left'],
-                                                                                              last_frame['feats_left'],
-                                                                                              pts_2d_left, mfeats_left)
+            pts1, des1, pts2, des2, index_match, good_matches = slam_lib.feature.epipolar_geometry_filter_matched_pts_pair(last_frame['pts_2d_left'],
+                                                                                                                           last_frame['feats_left'],
+                                                                                                                           pts_2d_left, mfeats_left)
             tf = slam_lib.mapping.umeyama_ransac(src=last_frame['pts_3d'][index_match[:, 0]],
                                         tgt=general_pts_3d[index_match[:, 1]])  # compute tf by common pts
 
