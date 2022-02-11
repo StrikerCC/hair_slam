@@ -13,7 +13,7 @@ import open3d as o3
 
 import slam_lib.dataset
 import slam_lib.feature
-from slam_lib.camera.cam import BiCamera
+from slam_lib.camera.cam import StereoCamera
 from slam_lib.camera.calibration import stereo_calibrate
 import slam_lib.mapping
 
@@ -39,7 +39,7 @@ def main():
             print('     ', img_dir)
 
     # binocular = BiCamera('./config/bicam_cal_para.json')
-    binocular = BiCamera()
+    binocular = StereoCamera()
     stereo_calibrate(square_size, checkboard_size, data['left_calibration_img'], data['right_calibration_img'],
                      binocular=binocular,
                      file_path_2_save='./config/bicam_cal_para.json')

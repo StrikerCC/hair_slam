@@ -14,7 +14,7 @@ import transforms3d as tf3
 
 import slam_lib.dataset
 import slam_lib.feature
-from slam_lib.camera.cam import BiCamera
+from slam_lib.camera.cam import StereoCamera
 from slam_lib.camera.calibration import stereo_calibrate
 import slam_lib.mapping
 
@@ -33,7 +33,7 @@ def main():
         for img_dir in data.get(key):
             print('     ', img_dir)
 
-    binocular = BiCamera('./config/bicam_cal_para.json')
+    binocular = StereoCamera('./config/bicam_cal_para.json')
     print('calibration result')
     print(binocular.cam_left.camera_matrix)
     print(binocular.cam_right.camera_matrix)

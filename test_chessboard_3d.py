@@ -13,7 +13,7 @@ import open3d as o3
 
 import slam_lib.dataset
 import slam_lib.feature
-from slam_lib.camera.cam import BiCamera
+from slam_lib.camera.cam import StereoCamera
 from slam_lib.camera.calibration import stereo_calibrate
 import slam_lib.geometry
 import slam_lib.mapping
@@ -30,7 +30,7 @@ def get_stereo_calibration(square_size, checkboard_size, data_stereo, calibratio
 
     '''calibration'''
     stereo_cal_status = False
-    stereo = BiCamera()
+    stereo = StereoCamera()
 
     if calbration:
         slam_lib.camera.calibration.stereo_calibrate(square_size, checkboard_size, data_stereo['left_calibration_img'],
@@ -189,7 +189,7 @@ def test_match_by_projection(stereo, img_left, img_right, pts_2d_left_raw, pts_2
 
 def test_global_2_local_homo(stereo, binocular, img_left, img_right, img_global, pts_2d_left_raw, pts_2d_right_raw,
                              pts_3d_in_left, pts_3d_in_right, pts_3d_in_global):
-    flag_vis_porjection = False
+    flag_vis_porjection = True
     flag_vis_global_2_local_mapping = True
 
     tf_left_2_right = slam_lib.mapping.rt_2_tf(stereo.r, stereo.t)
@@ -224,33 +224,33 @@ def test_global_2_local_homo(stereo, binocular, img_left, img_right, img_global,
     range_x_min, range_y_min, range_x_max, range_y_max = x_min - int(w / 2), y_min - int(h / 2), x_max + int(
         w / 2), y_max + int(h / 2)
 
-    img_patch_global_2_match_left = img_global[range_y_min:range_y_max, range_x_min:range_x_max, :]
-
-    # find correspondence and homo between global patch and local
-    homography_global_2_global_patch = np.array([[1, 0, -range_x_min], [0, 1, -range_y_min], [0, 0, 1]])
-    homography_global_patch_2_left = homo.find_homo_between_two_imgs(img_patch_global_2_match_left, img_left,
-                                                                     flag_vis_feature_matching=False)
-    if homography_global_patch_2_left is None:
-        print('no homo found')
-        homography_global_patch_2_left = np.eye(3)
-
-    homography_global_2_left = np.matmul(homography_global_patch_2_left, homography_global_2_global_patch)
-
-    # map object in global img coord to local img coord
-    object_pts_2d_global = pts_2d_reproject_in_global
-    object_pts_2d_left = slam_lib.mapping.transform_pt_2d(homography_global_2_left, object_pts_2d_global)
-
-    # map local field of view to global
-    field_of_view_left = np.array([[0, 0],
-                                   [0, img_left.shape[0]],
-                                   [img_left.shape[1], img_left.shape[0]],
-                                   [img_left.shape[1], 0]])
-    field_of_view_left = np.concatenate([field_of_view_left / 2, field_of_view_left], axis=0)  # make upper left square
-    field_of_view_left_in_global = slam_lib.mapping.transform_pt_2d(np.linalg.inv(homography_global_2_left),
-                                                                    field_of_view_left).astype(int)
-    print(homography_global_patch_2_left)
-    print(object_pts_2d_global)
-    print(object_pts_2d_left)
+    # img_patch_global_2_match_left = img_global[range_y_min:range_y_max, range_x_min:range_x_max, :]
+    #
+    # # find correspondence and homo between global patch and local
+    # homography_global_2_global_patch = np.array([[1, 0, -range_x_min], [0, 1, -range_y_min], [0, 0, 1]])
+    # homography_global_patch_2_left = homo.find_homo_between_two_imgs(img_patch_global_2_match_left, img_left,
+    #                                                                  flag_vis_feature_matching=False)
+    # if homography_global_patch_2_left is None:
+    #     print('no homo found')
+    #     homography_global_patch_2_left = np.eye(3)
+    #
+    # homography_global_2_left = np.matmul(homography_global_patch_2_left, homography_global_2_global_patch)
+    #
+    # # map object in global img coord to local img coord
+    # object_pts_2d_global = pts_2d_reproject_in_global
+    # object_pts_2d_left = slam_lib.mapping.transform_pt_2d(homography_global_2_left, object_pts_2d_global)
+    #
+    # # map local field of view to global
+    # field_of_view_left = np.array([[0, 0],
+    #                                [0, img_left.shape[0]],
+    #                                [img_left.shape[1], img_left.shape[0]],
+    #                                [img_left.shape[1], 0]])
+    # field_of_view_left = np.concatenate([field_of_view_left / 2, field_of_view_left], axis=0)  # make upper left square
+    # field_of_view_left_in_global = slam_lib.mapping.transform_pt_2d(np.linalg.inv(homography_global_2_left),
+    #                                                                 field_of_view_left).astype(int)
+    # print(homography_global_patch_2_left)
+    # print(object_pts_2d_global)
+    # print(object_pts_2d_left)
 
     # vis skin points in local and global
     # draw match
@@ -289,46 +289,46 @@ def test_global_2_local_homo(stereo, binocular, img_left, img_right, img_global,
         cv2.imshow('3d checkboard project in global img', img_global_proj_checkboard)
         cv2.waitKey(0)
 
-    if flag_vis_global_2_local_mapping:
-        img_global_mark_object = np.copy(img_global)
-        for pts_2d in object_pts_2d_global:
-            pts_2d = pts_2d.astype(int)
-            img_global_mark_object = cv2.circle(img_global_mark_object, center=pts_2d, radius=4, color=(0, 0, 255),
-                                                thickness=2)
-        cv2.namedWindow('object pts in global img', cv2.WINDOW_NORMAL)
-        cv2.imshow('object pts in global img', img_global_mark_object)
-        cv2.waitKey(0)
-
-        img_left_mark_object = np.copy(img_left)
-        for pts_2d in object_pts_2d_left.astype(int):
-            pts_2d = pts_2d.astype(int)
-            img_left_mark_object = cv2.circle(img_left_mark_object, center=pts_2d, radius=15, color=(0, 0, 255),
-                                              thickness=2)
-        cv2.namedWindow('object pts in left img', cv2.WINDOW_NORMAL)
-        cv2.imshow('object pts in left img', img_left_mark_object)
-        cv2.waitKey(0)
-
-        img_left_field_of_view = np.copy(img_left)
-        for pts_2d_start, pts_2d_end in zip(field_of_view_left,
-                                            np.concatenate([field_of_view_left[1:], field_of_view_left[0:1]], axis=0)):
-            pts_2d_start = pts_2d_start.astype(int)
-            pts_2d_end = pts_2d_end.astype(int)
-            img_left_field_of_view = cv2.line(img_left_field_of_view, pt1=pts_2d_start, pt2=pts_2d_end,
-                                              color=(0, 0, 255), thickness=2)
-        cv2.namedWindow('half field of view in left img', cv2.WINDOW_NORMAL)
-        cv2.imshow('half field of view in left img', img_left_field_of_view)
-        cv2.waitKey(0)
-
-        img_left_field_of_view_in_global = np.copy(img_global)
-        for pts_2d_start, pts_2d_end in zip(field_of_view_left_in_global, np.concatenate(
-                [field_of_view_left_in_global[1:], field_of_view_left_in_global[0:1]], axis=0)):
-            pts_2d_start = pts_2d_start.astype(int)
-            pts_2d_end = pts_2d_end.astype(int)
-            img_left_field_of_view_in_global = cv2.line(img_left_field_of_view_in_global, pt1=pts_2d_start,
-                                                        pt2=pts_2d_end, color=(0, 0, 255), thickness=2)
-        cv2.namedWindow('left field of view in global img', cv2.WINDOW_NORMAL)
-        cv2.imshow('left field of view in global img', img_left_field_of_view_in_global)
-        cv2.waitKey(0)
+    # if flag_vis_global_2_local_mapping:
+    #     img_global_mark_object = np.copy(img_global)
+    #     for pts_2d in object_pts_2d_global:
+    #         pts_2d = pts_2d.astype(int)
+    #         img_global_mark_object = cv2.circle(img_global_mark_object, center=pts_2d, radius=4, color=(0, 0, 255),
+    #                                             thickness=2)
+    #     cv2.namedWindow('object pts in global img', cv2.WINDOW_NORMAL)
+    #     cv2.imshow('object pts in global img', img_global_mark_object)
+    #     cv2.waitKey(0)
+    #
+    #     img_left_mark_object = np.copy(img_left)
+    #     for pts_2d in object_pts_2d_left.astype(int):
+    #         pts_2d = pts_2d.astype(int)
+    #         img_left_mark_object = cv2.circle(img_left_mark_object, center=pts_2d, radius=15, color=(0, 0, 255),
+    #                                           thickness=2)
+    #     cv2.namedWindow('object pts in left img', cv2.WINDOW_NORMAL)
+    #     cv2.imshow('object pts in left img', img_left_mark_object)
+    #     cv2.waitKey(0)
+    #
+    #     img_left_field_of_view = np.copy(img_left)
+    #     for pts_2d_start, pts_2d_end in zip(field_of_view_left,
+    #                                         np.concatenate([field_of_view_left[1:], field_of_view_left[0:1]], axis=0)):
+    #         pts_2d_start = pts_2d_start.astype(int)
+    #         pts_2d_end = pts_2d_end.astype(int)
+    #         img_left_field_of_view = cv2.line(img_left_field_of_view, pt1=pts_2d_start, pt2=pts_2d_end,
+    #                                           color=(0, 0, 255), thickness=2)
+    #     cv2.namedWindow('half field of view in left img', cv2.WINDOW_NORMAL)
+    #     cv2.imshow('half field of view in left img', img_left_field_of_view)
+    #     cv2.waitKey(0)
+    #
+    #     img_left_field_of_view_in_global = np.copy(img_global)
+    #     for pts_2d_start, pts_2d_end in zip(field_of_view_left_in_global, np.concatenate(
+    #             [field_of_view_left_in_global[1:], field_of_view_left_in_global[0:1]], axis=0)):
+    #         pts_2d_start = pts_2d_start.astype(int)
+    #         pts_2d_end = pts_2d_end.astype(int)
+    #         img_left_field_of_view_in_global = cv2.line(img_left_field_of_view_in_global, pt1=pts_2d_start,
+    #                                                     pt2=pts_2d_end, color=(0, 0, 255), thickness=2)
+    #     cv2.namedWindow('left field of view in global img', cv2.WINDOW_NORMAL)
+    #     cv2.imshow('left field of view in global img', img_left_field_of_view_in_global)
+    #     cv2.waitKey(0)
 
 
 def main():
@@ -384,11 +384,11 @@ def main():
         pts_3d_in_global = slam_lib.mapping.transform_pt_3d(tf_left_2_global, pts_3d_in_left)
 
         '''testing functionalities'''
-        test_match_by_projection(stereo, img_left, img_right, pts_2d_left_raw, pts_2d_right_raw, pts_3d_in_left,
-                                 pts_3d_in_right)
+        # test_match_by_projection(stereo, img_left, img_right, pts_2d_left_raw, pts_2d_right_raw, pts_3d_in_left,
+        #                          pts_3d_in_right)
 
-        # test_global_2_local_homo(stereo, binocular, img_left, img_right, img_global, pts_2d_left_raw, pts_2d_right_raw,
-        #                          pts_3d_in_left, pts_3d_in_right, pts_3d_in_global)
+        test_global_2_local_homo(stereo, binocular, img_left, img_right, img_global, pts_2d_left_raw, pts_2d_right_raw,
+                                 pts_3d_in_left, pts_3d_in_right, pts_3d_in_global)
 
         # statistics
         dist = pts_3d_in_left[:-1, :] - pts_3d_in_left[1:, :]
