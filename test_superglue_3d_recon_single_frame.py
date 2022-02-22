@@ -16,12 +16,13 @@ import transforms3d as tf3
 import slam_lib.dataset
 import slam_lib.feature
 import slam_lib.mapping
+import slam_lib.geometry
 from slam_lib.camera.cam import StereoCamera
 from slam_lib.camera.calibration import stereo_calibrate
 import slam_lib.vis
 
-from models.matching import Matching
-from models.utils import (compute_pose_error, compute_epipolar_error,
+from slam_lib.models.matching import Matching
+from slam_lib.models.utils import (compute_pose_error, compute_epipolar_error,
                           estimate_pose, make_matching_plot,
                           error_colormap, AverageTimer, pose_auc, read_image,
                           rotate_intrinsics, rotate_pose_inplane,
@@ -129,14 +130,19 @@ def main():
 
         # tracking
         if i > 0:
-            pts1, des1, pts2, des2, index_match, good_matches = slam_lib.feature.epipolar_geometry_filter_matched_pts_pair(last_frame['pts_2d_left'],
-                                                                                                                           last_frame['feats_left'],
-                                                                                                                           pts_2d_left, mfeats_left)
+            pts1, des1, pts2, des2, index_match = slam_lib.feature.match_sift_feats(last_frame['pts_2d_left'],
+                                                                                    last_frame['feats_left'],
+                                                                                    pts_2d_left, mfeats_left)
+            pts1, pts2, mask = slam_lib.geometry.epipolar_geometry_filter_matched_pts_pair(pts1, pts2)
+            # des1, des2 = des1[mask], des2[mask]
+
+            index_match = index_match[mask]
+
             tf = slam_lib.mapping.umeyama_ransac(src=last_frame['pts_3d'][index_match[:, 0]],
                                         tgt=general_pts_3d[index_match[:, 1]])  # compute tf by common pts
 
             print('>>>>>>>>>>>>>>>>>>>>>>>> tracking ')
-            print('fusion get ', len(good_matches), ' good matches')
+            print('fusion get ', len(index_match), ' good matches')
             print(len(index_match), 'common pts between frame ')
             print('rotation', tf3.euler.mat2euler(tf[:3, :3]), '\ntranslation', tf[:3, -1])
             print('<<<<<<<<<<<<<<<<<<<<<<<< tracking ')

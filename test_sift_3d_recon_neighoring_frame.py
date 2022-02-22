@@ -17,7 +17,7 @@ import slam_lib.feature
 from slam_lib.camera.cam import StereoCamera
 from slam_lib.camera.calibration import stereo_calibrate
 import slam_lib.mapping
-
+import slam_lib.geometry
 import slam_lib.vis
 
 
@@ -73,7 +73,8 @@ def main():
         # tracking
         if i > 0:
             pts1, des1, pts2, des2, index_match = slam_lib.feature.match_sift_feats(last_frame['pts_2d_left'], last_frame['sift_left'], pts_2d_left, sift_left)
-            pts1, des1, pts2, des2, mask = slam_lib.feature.epipolar_geometry_filter_matched_pts_pair(pts1, des1, pts2, des2)
+            pts1, pts2, mask = slam_lib.geometry.epipolar_geometry_filter_matched_pts_pair(pts1, pts2,)
+            des1, des2 = des1[mask], des2[mask]
             index_match = index_match[mask]
             tf = slam_lib.mapping.umeyama_ransac(src=last_frame['pts_3d'][index_match[:, 0]], tgt=pts_3d[index_match[:, 1]])     # compute tf by common pts
 

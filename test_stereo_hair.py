@@ -15,6 +15,8 @@ import slam_lib.dataset
 import slam_lib.feature
 from slam_lib.camera.cam import StereoCamera
 from slam_lib.camera.calibration import stereo_calibrate
+
+import slam_lib.format
 import slam_lib.geometry
 import slam_lib.mapping
 import slam_lib.vis
@@ -24,8 +26,6 @@ import homo
 def get_stereo_calibration(square_size, checkboard_size, data_stereo, calibration_parameter_saving_file_path,
                            calbration=False):
     """
-
-    :return:
     """
 
     '''calibration'''
@@ -53,6 +53,8 @@ def get_stereo_calibration(square_size, checkboard_size, data_stereo, calibratio
 def test_match_by_projection(stereo, img_left, img_right, pts_2d_left_raw, pts_2d_right_raw, pts_3d_in_left,
                              pts_3d_in_right):
     """"""
+    epipolar_error = 50.0
+
     tf_left_2_right = slam_lib.mapping.rt_2_tf(stereo.r, stereo.t)
 
     '''find interested pts correspondence between left and right img'''
@@ -61,8 +63,13 @@ def test_match_by_projection(stereo, img_left, img_right, pts_2d_left_raw, pts_2
     # interested_pts_2d_right = pts_2d_right_raw
 
     # get interested pt by sift points
-    interested_pts_2d_left_raw, des1, interested_pts_2d_right_raw, des2 = \
-        slam_lib.feature.get_sift_pts_and_sift_feats(img_left, img_right, shrink=4.5, flag_debug=True)
+    time_start = time.time()
+
+    left_interested_pts_2d_left_img, des1, right_interested_pts_2d_right_img, des2 = \
+        slam_lib.feature.get_sift_pts_and_sift_feats(img_left, img_right, shrink=10, flag_debug=False)
+
+    time_sift_computation = time.time() - time_start
+    time_start = time.time()
 
     # bf = cv2.BFMatcher_create()
     # matches = bf.knnMatch(des1, des2, k=2)
@@ -74,79 +81,106 @@ def test_match_by_projection(stereo, img_left, img_right, pts_2d_left_raw, pts_2
     # interested_pts_2d_right = interested_pts_2d_right[index_match[:, 1].tolist()]  # trainIdx
     # des2 = des2[index_match[:, 1]]
 
-    interested_pts_2d_left = cv2.undistortPoints(interested_pts_2d_left_raw, cameraMatrix=stereo.cam_left.camera_matrix,
-                                                 distCoeffs=stereo.cam_left.distortion_coefficient)
-    interested_pts_2d_left = interested_pts_2d_left[:, 0, :]
-
-    interested_pts_2d_right = cv2.undistortPoints(interested_pts_2d_right_raw,
-                                                  cameraMatrix=stereo.cam_right.camera_matrix,
-                                                  distCoeffs=stereo.cam_right.distortion_coefficient)
-    interested_pts_2d_right = interested_pts_2d_right[:, 0, :]
+    left_interested_pts_2d_left_cam = stereo.cam_left.proj_pts_2d_img_frame_2_new_frame(left_interested_pts_2d_left_img)
+    right_interested_pts_2d_right_cam = stereo.cam_left.proj_pts_2d_img_frame_2_new_frame(right_interested_pts_2d_right_img)
 
     # compute project line, which is interested pts on image
-    interested_lines_3d_left_img_plane = np.concatenate(
-        [np.copy(interested_pts_2d_left), np.ones((interested_pts_2d_left.shape[0], 1))],
-        axis=-1) * 300
-    interested_lines_3d_right_img_plane = np.concatenate(
-        [np.copy(interested_pts_2d_right), np.ones((interested_pts_2d_right.shape[0], 1))],
-        axis=-1) * 300
+    left_interested_lines_3d_left_cam = slam_lib.format.pts_2d_2_3d_homo(left_interested_pts_2d_left_cam) * 300
+    right_interested_lines_3d_right_cam = slam_lib.format.pts_2d_2_3d_homo(right_interested_pts_2d_right_cam) * 300
 
     # find 3d points closeted to project line
-    index_left_lines_2_pts_3d_left, interested_lines_3d_left_img_plane_normalized = slam_lib.geometry.nearest_points_2_lines(
-        interested_lines_3d_left_img_plane, pts_3d_in_left)
-    index_right_lines_2_pts_3d_right, interested_lines_3d_right_img_plane_normalized = slam_lib.geometry.nearest_points_2_lines(
-        interested_lines_3d_right_img_plane, pts_3d_in_right)
+    index_lines_2_pts_3d_left, left_interested_lines_3d_right_cam_normalized = slam_lib.geometry.nearest_points_2_lines(
+        left_interested_lines_3d_left_cam, pts_3d_in_left)
+    index_lines_2_pts_3d_right, right_interested_lines_3d_right_cam_normalized = slam_lib.geometry.nearest_points_2_lines(
+        right_interested_lines_3d_right_cam, pts_3d_in_right)
 
     # get interested point project on ideal surface formed by 3d points
     ## get nearest 3d points for each line
-    pts_3d_in_left_close_to_interested_pts = pts_3d_in_left[index_left_lines_2_pts_3d_left]
-    pts_3d_in_right_close_to_interested_pts = pts_3d_in_right[index_right_lines_2_pts_3d_right]
+    pts_3d_in_left_closet_to_interested_pts = pts_3d_in_left[index_lines_2_pts_3d_left]
+    pts_3d_in_right_closet_to_interested_pts = pts_3d_in_right[index_lines_2_pts_3d_right]
 
-    interested_pts_3d_left_proj_in_left = slam_lib.geometry.closet_vector_2_point(
-        interested_lines_3d_left_img_plane_normalized,
-        pts_3d_in_left_close_to_interested_pts)
-    interested_pts_3d_right_proj_in_right = slam_lib.geometry.closet_vector_2_point(
-        interested_lines_3d_right_img_plane_normalized,
-        pts_3d_in_right_close_to_interested_pts)
-    interested_pts_3d_right_proj_in_left = slam_lib.mapping.transform_pt_3d(np.linalg.inv(tf_left_2_right),
-                                                                            interested_pts_3d_right_proj_in_right)
+    left_interested_pts_3d_left_cam = slam_lib.geometry.closet_vector_2_point(
+        left_interested_lines_3d_right_cam_normalized,
+        pts_3d_in_left_closet_to_interested_pts)
+    right_interested_pts_3d_right_cam = slam_lib.geometry.closet_vector_2_point(
+        right_interested_lines_3d_right_cam_normalized,
+        pts_3d_in_right_closet_to_interested_pts)
+    right_interested_pts_3d_left_cam = slam_lib.mapping.transform_pt_3d(np.linalg.inv(tf_left_2_right),
+                                                                        right_interested_pts_3d_right_cam)
 
     # pc_general_left = o3.geometry.PointCloud()
     # pc_general_left.points = o3.utility.Vector3dVector(pts_3d_in_left)
 
-    # nn search to match interested point project on ideal surface
-    id_left_interested_pts_2_right_interested_pts = slam_lib.geometry.nearest_neighbor_points_2_points(
-        interested_pts_3d_left_proj_in_left, interested_pts_3d_right_proj_in_left)
-    pts_2d_raw_left_match, pts_2d_raw_right_match = [], []
-    for id_left_interested_pt, id_right_interested_pt in id_left_interested_pts_2_right_interested_pts:
-        pts_2d_raw_left_match.append(interested_pts_2d_left_raw[id_left_interested_pt])
-        pts_2d_raw_right_match.append(interested_pts_2d_right_raw[id_right_interested_pt])
-    pts_2d_raw_left_match = np.asarray(pts_2d_raw_left_match)
-    pts_2d_raw_right_match = np.asarray(pts_2d_raw_right_match)
+    # nn search to match interested point
+    left_interested_pts_3d_left_cam_match, right_interested_pts_3d_left_cam_match, \
+    id_left_interested_pts_2_right_interested_pts = \
+        slam_lib.geometry.nearest_neighbor_points_2_points(left_interested_pts_3d_left_cam,
+                                                           right_interested_pts_3d_left_cam)
+
+    time_match = time.time() - time_start
+    time_start = time.time()
+
+    # filter by epipolar geometry
+    left_interested_pts_2d_left_img_match, right_interested_pts_2d_right_img_match = \
+        left_interested_pts_2d_left_img[id_left_interested_pts_2_right_interested_pts[:, 0].tolist()], \
+        right_interested_pts_2d_right_img[id_left_interested_pts_2_right_interested_pts[:, 1].tolist()]
+
+    # interested_pts_2d_left_cam_match, *_ = cv2.projectPoints(
+    #     left_interested_pts_3d_left_cam_match, rvec=cv2.Rodrigues(stereo.rotation_rectify_left)[0], tvec=np.zeros(3),
+    #     cameraMatrix=stereo.camera_matrix_rectify_left[:3, :3], distCoeffs=None)
+    # interested_pts_2d_right_cam_match, *_ = cv2.projectPoints(
+    #     right_interested_pts_3d_left_cam_match, rvec=cv2.Rodrigues(stereo.rotation_rectify_right)[0], tvec=np.zeros(3),
+    #     cameraMatrix=stereo.camera_matrix_rectify_right[:3, :3], distCoeffs=None)
+    # interested_pts_2d_left_cam_match, interested_pts_2d_right_cam_match = \
+    #     interested_pts_2d_left_cam_match[:, 0, :], interested_pts_2d_right_cam_match[:, 0, :]
+
+    interested_pts_2d_left_cam_rectified_match, interested_pts_2d_right_cam_rectified_match = \
+        stereo.cam_left.proj_pts_2d_img_frame_2_new_frame(left_interested_pts_2d_left_img_match,
+                                                          rotation=stereo.rotation_rectify_left,
+                                                          camera_matrix=stereo.camera_matrix_rectify_left), \
+        stereo.cam_right.proj_pts_2d_img_frame_2_new_frame(right_interested_pts_2d_right_img_match,
+                                                           rotation=stereo.rotation_rectify_right,
+                                                           camera_matrix=stereo.camera_matrix_rectify_right)
+
+    mask_epipolar = (interested_pts_2d_left_cam_rectified_match[:, 1] - interested_pts_2d_right_cam_rectified_match[:, 1]) < epipolar_error
+
+    # id_left_interested_pts_2_right_interested_pts = id_left_interested_pts_2_right_interested_pts[mask_epipolar]
+
+    time_filter = time.time() - time_start
+    time_start = time.time()
+
+    interested_pts_2d_left_img_match, interested_pts_2d_right_img_match = \
+        left_interested_pts_2d_left_img[id_left_interested_pts_2_right_interested_pts[:, 0].tolist()], \
+        right_interested_pts_2d_right_img[id_left_interested_pts_2_right_interested_pts[:, 1].tolist()]
+
+    # statistic
+    print('time feats', time_sift_computation)
+    print('time match', time_match)
+    print('time filter', time_filter)
 
     # vis
     ## draw match
     end = -1
-    img_match = slam_lib.vis.draw_matches(img_left, pts_2d_raw_left_match[:end], img_right,
-                                          pts_2d_raw_right_match[:end])
+    img_match = slam_lib.vis.draw_matches(img_left, interested_pts_2d_left_img_match[:end], img_right,
+                                          interested_pts_2d_right_img_match[:end])
     cv2.namedWindow('checkboard points reprojection match', cv2.WINDOW_NORMAL)
     cv2.imshow('checkboard points reprojection match', img_match)
     cv2.waitKey(0)
 
     # lines
-    origins = np.zeros(interested_lines_3d_left_img_plane.shape)
+    origins = np.zeros(left_interested_lines_3d_left_cam.shape)
     lines_left = o3.geometry.LineSet()
-    lines_left.points = o3.utility.Vector3dVector(np.vstack([interested_lines_3d_left_img_plane, origins]))
+    lines_left.points = o3.utility.Vector3dVector(np.vstack([left_interested_lines_3d_left_cam, origins]))
     lines_left.lines = o3.utility.Vector2iVector(
-        np.arange(0, 2 * len(interested_lines_3d_left_img_plane)).reshape(2, -1).T)
-    colors = [[1, 0, 0] for i in range(2 * len(interested_lines_3d_left_img_plane))]
+        np.arange(0, 2 * len(left_interested_lines_3d_left_cam)).reshape(2, -1).T)
+    colors = [[1, 0, 0] for i in range(2 * len(left_interested_lines_3d_left_cam))]
     lines_left.colors = o3.utility.Vector3dVector(colors)
 
     lines_right = o3.geometry.LineSet()
-    lines_right.points = o3.utility.Vector3dVector(np.vstack([interested_lines_3d_right_img_plane, origins]))
+    lines_right.points = o3.utility.Vector3dVector(np.vstack([right_interested_lines_3d_right_cam, origins]))
     lines_right.lines = o3.utility.Vector2iVector(
-        np.arange(0, 2 * len(interested_lines_3d_right_img_plane)).reshape(2, -1).T)
-    colors = [[200, 0, 0] for i in range(2 * len(interested_lines_3d_right_img_plane))]
+        np.arange(0, 2 * len(right_interested_lines_3d_right_cam)).reshape(2, -1).T)
+    colors = [[200, 0, 0] for i in range(2 * len(right_interested_lines_3d_right_cam))]
     lines_right.colors = o3.utility.Vector3dVector(colors)
     lines_right.transform(np.linalg.inv(tf_left_2_right))
 
@@ -159,7 +193,7 @@ def test_match_by_projection(stereo, img_left, img_right, pts_2d_left_raw, pts_2
     pc_general_right.transform(np.linalg.inv(tf_left_2_right))
 
     pc_interested = o3.geometry.PointCloud()
-    pc_interested.points = o3.utility.Vector3dVector(interested_pts_3d_left_proj_in_left)
+    pc_interested.points = o3.utility.Vector3dVector(left_interested_pts_3d_left_cam)
 
     # frames
     mesh = o3.geometry.TriangleMesh()
@@ -167,11 +201,15 @@ def test_match_by_projection(stereo, img_left, img_right, pts_2d_left_raw, pts_2
     frame_right = mesh.create_coordinate_frame(size=20.0)
     frame_right.transform(np.linalg.inv(tf_left_2_right))
 
+    o3.visualization.draw_geometries([pc_general_left])
+
     o3.visualization.draw_geometries(
-        [frame_left, frame_right, lines_left, pc_general_left, lines_right, pc_general_right, pc_interested])
+        [frame_left, frame_right, lines_left, lines_right, pc_interested])
+
+    o3.visualization.draw_geometries([pc_interested])
 
     pts_2d_left_img_plane_reproject, *_ = cv2.projectPoints(
-        interested_lines_3d_left_img_plane_normalized, rvec=np.eye(3), tvec=np.zeros(3),
+        left_interested_lines_3d_right_cam_normalized, rvec=np.eye(3), tvec=np.zeros(3),
         cameraMatrix=stereo.cam_left.camera_matrix,
         distCoeffs=stereo.cam_right.distortion_coefficient)
     pts_2d_left_img_plane_reproject = pts_2d_left_img_plane_reproject[:, 0, :]
@@ -333,46 +371,75 @@ def test_global_2_local_homo(stereo, binocular, img_left, img_right, img_global,
 
 def main():
     """calibration and 3d reconstruction"""
+    general_pts_match = 'superglue'
+    # general_pts_match = 'sift'
 
     '''load data'''
     checkboard_size = (11, 8)  # (board_width, board_height)
-    square_size = 3.0
-    dataset_dir = '/home/cheng/Pictures/data/202201251506'
+    square_size = 2.0
+    dataset_dir = '/home/cheng/Pictures/data/202202211713'
     data_stereo = slam_lib.dataset.get_calibration_and_img(dataset_dir)
-    data_binocular = slam_lib.dataset.get_calibration_and_img(dataset_dir, right_img_dir_name='global')
+    # data_binocular = slam_lib.dataset.get_calibration_and_img(dataset_dir, right_img_dir_name='global')
     stereo = get_stereo_calibration(square_size, checkboard_size, data_stereo,
-                                    calibration_parameter_saving_file_path='./config/bicam_cal_para_stereo.json')
-    binocular = get_stereo_calibration(square_size, checkboard_size, data_binocular,
-                                       calibration_parameter_saving_file_path='./config/bicam_cal_para_binocular.json')
+                                    calibration_parameter_saving_file_path='./config/bicam_cal_para_stereo.json', calbration=False)
+    # binocular = get_stereo_calibration(square_size, checkboard_size, data_binocular,
+    #                                    calibration_parameter_saving_file_path='./config/bicam_cal_para_binocular.json')
+
+    matcher = slam_lib.feature.Matcher()
 
     '''3d recon'''
-    for i, (img_left_path, img_right_path, img_global_path) in enumerate(zip(data_stereo['left_calibration_img'],
-                                                                             data_stereo['right_calibration_img'],
-                                                                             data_binocular['right_calibration_img'])):
-        print('running checkboard reconstruction', i, img_left_path, img_right_path)
+    for i, (img_left_path, img_right_path) in enumerate(zip(data_stereo['left_general_img'],
+                                                                             data_stereo['right_general_img'],)):
+                                                                             # data_binocular['right_general_img'])):
+        print('running hair reconstruction', i, img_left_path, img_right_path)
         # preprocess image
         img_left, img_right = cv2.imread(img_left_path), cv2.imread(img_right_path)
         gray_left, gray_right = cv2.cvtColor(img_left, cv2.COLOR_BGR2GRAY), cv2.cvtColor(img_right, cv2.COLOR_BGR2GRAY)
 
-        img_global = cv2.imread(img_global_path)
-        gray_global = cv2.cvtColor(img_global, cv2.COLOR_BGR2GRAY)
+        # img_global = cv2.imread(img_global_path)
+        # gray_global = cv2.cvtColor(img_global, cv2.COLOR_BGR2GRAY)
         tf_left_2_right = slam_lib.mapping.rt_2_tf(stereo.r, stereo.t)
-        tf_left_2_global = slam_lib.mapping.rt_2_tf(binocular.r, binocular.t)
+        # tf_left_2_global = slam_lib.mapping.rt_2_tf(binocular.r, binocular.t)
 
         # extract feature from stereo
-        time_start = time.time()
-        pts_2d_left_raw = slam_lib.feature.get_checkboard_corners(gray_left, checkboard_size, flag_vis=False)
-        pts_2d_right_raw = slam_lib.feature.get_checkboard_corners(gray_right, checkboard_size, flag_vis=False)
+        # superglue
+        time_start_0 = time.time()
+        pts_2d_left_raw, pts_2d_right_raw = None, None
 
-        pts_2d_left = cv2.undistortPoints(pts_2d_left_raw, cameraMatrix=stereo.cam_left.camera_matrix,
-                                          distCoeffs=stereo.cam_left.distortion_coefficient)
-        pts_2d_left = pts_2d_left[:, 0, :]
+        if general_pts_match == 'superglue':
+            pts_2d_left_raw, pts_2d_right_raw = matcher.match(img_left_path, img_right_path)
+            pts_2d_left_raw, pts_2d_right_raw, _ = slam_lib.geometry.epipolar_geometry_filter_matched_pts_pair(
+                pts_2d_left_raw, pts_2d_right_raw)
+            print('get free hair pts in', time.time()-time_start_0, 'seconds')
 
-        pts_2d_right = cv2.undistortPoints(pts_2d_right_raw, cameraMatrix=stereo.cam_right.camera_matrix,
-                                           distCoeffs=stereo.cam_right.distortion_coefficient)
-        pts_2d_right = pts_2d_right[:, 0, :]
+        # get interested pt by sift points
+        elif general_pts_match == 'sift':
+            time_start = time.time()
 
-        print('get checkboard corners in', time.time() - time_start, 'seconds')
+            pts_2d_left_raw, des_left_raw, pts_2d_right_raw, des_right_raw = \
+                slam_lib.feature.get_sift_pts_and_sift_feats(img_left, img_right, shrink=5, flag_debug=False)
+
+            time_sift_computation = time.time() - time_start
+            time_start = time.time()
+
+            pts_2d_left_raw, des_left_raw, pts_2d_right_raw, des_right_raw, index_match = slam_lib.feature.match_sift_feats(pts_2d_left_raw, des_left_raw, pts_2d_right_raw, des_right_raw)
+            time_sift_match = time.time() - time_start
+            time_start = time.time()
+
+            pts_2d_left_raw, pts_2d_right_raw, mask_raw = slam_lib.geometry.epipolar_geometry_filter_matched_pts_pair(pts_2d_left_raw, pts_2d_right_raw)
+            time_sift_filter = time.time() - time_start
+
+            # statistic
+            print('time feats', time_sift_computation)
+            print('time match', time_sift_match)
+            print('time filter', time_sift_filter)
+            print('get free hair pts in', time.time()-time_start_0, 'seconds')
+
+        img3 = slam_lib.vis.draw_matches(img_left, pts_2d_left_raw, img_right, pts_2d_right_raw, flag_count_match=False)
+        cv2.namedWindow('match', cv2.WINDOW_NORMAL)
+        cv2.imshow('match', img3)
+        cv2.waitKey(0)
+
         # if pts_2d_left_rectified is None or pts_2d_right_rectified is None:
         #     if pts_2d_left_rectified is None: print('feature missed in left rectification')
         #     if pts_2d_right_rectified is None: print('feature missed in right rectification')
@@ -381,14 +448,14 @@ def main():
         # compute feature 3d coord
         pts_3d_in_left = stereo.correspondence_to_3d_in_left(pts_2d_left_raw, pts_2d_right_raw)
         pts_3d_in_right = slam_lib.mapping.transform_pt_3d(tf_left_2_right, pts_3d_in_left)
-        pts_3d_in_global = slam_lib.mapping.transform_pt_3d(tf_left_2_global, pts_3d_in_left)
+        # pts_3d_in_global = slam_lib.mapping.transform_pt_3d(tf_left_2_global, pts_3d_in_left)
 
         '''testing functionalities'''
-        # test_match_by_projection(stereo, img_left, img_right, pts_2d_left_raw, pts_2d_right_raw, pts_3d_in_left,
-        #                          pts_3d_in_right)
+        test_match_by_projection(stereo, img_left, img_right, pts_2d_left_raw, pts_2d_right_raw, pts_3d_in_left,
+                                 pts_3d_in_right)
 
-        test_global_2_local_homo(stereo, binocular, img_left, img_right, img_global, pts_2d_left_raw, pts_2d_right_raw,
-                                 pts_3d_in_left, pts_3d_in_right, pts_3d_in_global)
+        # test_global_2_local_homo(stereo, binocular, img_left, img_right, img_global, pts_2d_left_raw, pts_2d_right_raw,
+        #                          pts_3d_in_left, pts_3d_in_right, pts_3d_in_global)
 
         # statistics
         dist = pts_3d_in_left[:-1, :] - pts_3d_in_left[1:, :]
@@ -402,7 +469,7 @@ def main():
         frame_right = mesh.create_coordinate_frame(size=25.0)
         frame_right.transform(np.linalg.inv(tf_left_2_right))
         frame_global = mesh.create_coordinate_frame(size=55.0)
-        frame_global.transform(np.linalg.inv(tf_left_2_global))
+        # frame_global.transform(np.linalg.inv(tf_left_2_global))
 
         pc_general_left = o3.geometry.PointCloud()
         pc_general_left.points = o3.utility.Vector3dVector(pts_3d_in_left)
