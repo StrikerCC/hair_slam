@@ -50,8 +50,8 @@ def get_stereo_calibration(square_size, checkboard_size, data_stereo, calibratio
     return stereo
 
 
-def match_by_projection(stereo, img_left, img_right, left_interested_pts_2d_left_img, right_interested_pts_2d_right_img,
-                        pts_3d_in_left, pts_3d_in_right, flag_debug=True):
+def match_by_projection(stereo, img_left, left_interested_pts_2d_left_img, pts_3d_in_left,
+                        img_right, right_interested_pts_2d_right_img, pts_3d_in_right, flag_debug=True):
     """"""
 
     timer = slam_lib.format.timer()
@@ -233,35 +233,39 @@ def prerecon(stereo, matcher, img_left, img_right, flag_debug=False):
     return pts_3d_in_left, pts_3d_in_right
 
 
-def match(stereo, img_left, left_interested_pts_2d_left_img, img_right, right_interested_pts_2d_right_img, matcher, flag_debug=True):
-    """
+class Matcher:
+    def __init__(self, ):
+        self.matcher_core = slam_lib.feature.Matcher()
+        self.stereo = slam_lib.camera.cam.StereoCamera()
+        self.stereo.read_cal_param_file_and_set_params(para_file_path='./config/bicam_cal_para_stereo.json')
+        self.flag_debug = True
 
-    :param stereo:
-    :param img_left:
-    :param left_interested_pts_2d_left_img:
-    :param img_right:
-    :param right_interested_pts_2d_right_img:
-    :param matcher:
-    :return:
-    """
+    def match(self, img1, pts1, img2, pts2):
+        """
 
-    '''preprocess image'''
-    gray_left, gray_right = cv2.cvtColor(img_left, cv2.COLOR_BGR2GRAY), cv2.cvtColor(img_right, cv2.COLOR_BGR2GRAY)
+        :param img1:
+        :param pts1:
+        :param img2:
+        :param pts2:
+        :return:
+        """
+        '''preprocess image'''
+        gray_left, gray_right = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY), cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
 
-    '''pre 3d reconstruction: build 3d pts by superglue'''
-    print('getting superglue 3d pts')
-    pts_3d_in_left, pts_3d_in_right = prerecon(stereo, matcher, img_left, img_right, flag_debug)
-    print('got superglue 3d pts, # of pt : ', len(pts_3d_in_left))
+        '''pre 3d reconstruction: build 3d pts by superglue'''
+        print('getting superglue 3d pts')
+        pts_3d_in_left, pts_3d_in_right = prerecon(self.stereo, self.matcher_core, img1, img2,
+                                                   flag_debug=self.flag_debug)
+        print('got superglue 3d pts, # of pt : ', len(pts_3d_in_left))
 
-    '''in 3d reconstruction: match left and right interesting pts'''
-    print('getting match for interesting pts')
-    id_left_interested_2_right_interested = \
-        match_by_projection(stereo, img_left, img_right,
-                            left_interested_pts_2d_left_img, right_interested_pts_2d_right_img,
-                            pts_3d_in_left, pts_3d_in_right)
-    print('got match for interesting pts, # of match: ', len(id_left_interested_2_right_interested))
+        '''in 3d reconstruction: match left and right interesting pts'''
+        print('getting match for interesting pts')
+        id_left_interested_2_right_interested = match_by_projection(self.stereo, img1, pts1, pts_3d_in_left,
+                                                                    img2, pts2, pts_3d_in_right,
+                                                                    flag_debug=self.flag_debug)
+        print('got match for interesting pts, # of match: ', len(id_left_interested_2_right_interested))
 
-    return id_left_interested_2_right_interested
+        return id_left_interested_2_right_interested
 
 
 def main():
@@ -271,10 +275,7 @@ def main():
     square_size = 2.0
     dataset_dir = '/home/cheng/Pictures/data/202202211713'
     data_stereo = slam_lib.dataset.get_calibration_and_img(dataset_dir)
-
-    stereo = get_stereo_calibration(square_size, checkboard_size, data_stereo,
-                                    calibration_parameter_saving_file_path='./config/bicam_cal_para_stereo.json', calbration=False)
-    matcher = slam_lib.feature.Matcher()
+    matcher = Matcher()
 
     '''3d recon'''
     for i, (img_left_path, img_right_path) in enumerate(zip(data_stereo['left_general_img'],
@@ -290,8 +291,8 @@ def main():
               len(right_interested_pts_2d_right_img), 'pts from right')
 
         '''match interesting pts'''
-        id_left_interested_2_right_interested = match(stereo, img_left, left_interested_pts_2d_left_img,
-                                                      img_right, right_interested_pts_2d_right_img, matcher)
+        id_left_interested_2_right_interested = matcher.match(img_left, left_interested_pts_2d_left_img,
+                                                              img_right, right_interested_pts_2d_right_img)
 
 
 if __name__ == '__main__':
