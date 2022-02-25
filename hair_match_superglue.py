@@ -20,7 +20,6 @@ import slam_lib.format
 import slam_lib.geometry
 import slam_lib.mapping
 import slam_lib.vis
-import homo
 
 
 def get_stereo_calibration(square_size, checkboard_size, data_stereo, calibration_parameter_saving_file_path,
@@ -193,7 +192,7 @@ def prerecon(stereo, matcher, img_left, img_right, flag_debug=False):
     time_start_0 = time.time()
     pts_2d_left_raw, pts_2d_right_raw = None, None
 
-    pts_2d_left_raw, pts_2d_right_raw = matcher.match(img_left, img_right)
+    pts_2d_left_raw, _, pts_2d_right_raw, _ = matcher.match(img_left, img_right)
     pts_2d_left_raw, pts_2d_right_raw, _ = slam_lib.geometry.epipolar_geometry_filter_matched_pts_pair(
         pts_2d_left_raw, pts_2d_right_raw)
     print('get free hair pts in', time.time() - time_start_0, 'seconds')
@@ -203,32 +202,33 @@ def prerecon(stereo, matcher, img_left, img_right, flag_debug=False):
     pts_3d_in_right = slam_lib.mapping.transform_pt_3d(tf_left_2_right, pts_3d_in_left)
 
     '''vis'''
-    # match
-    img3 = slam_lib.vis.draw_matches(img_left, pts_2d_left_raw, img_right, pts_2d_right_raw, flag_count_match=False)
-    cv2.namedWindow('match', cv2.WINDOW_NORMAL)
-    cv2.imshow('match', img3)
-    cv2.waitKey(0)
+    if flag_debug:
+        # match
+        img3 = slam_lib.vis.draw_matches(img_left, pts_2d_left_raw, img_right, pts_2d_right_raw, flag_count_match=False)
+        cv2.namedWindow('match', cv2.WINDOW_NORMAL)
+        cv2.imshow('match', img3)
+        cv2.waitKey(0)
 
-    # pc
-    pc_general_left = o3.geometry.PointCloud()
-    pc_general_left.points = o3.utility.Vector3dVector(pts_3d_in_left)
-    pc_general_left.paint_uniform_color((1, 0, 0))
+        # pc
+        pc_general_left = o3.geometry.PointCloud()
+        pc_general_left.points = o3.utility.Vector3dVector(pts_3d_in_left)
+        pc_general_left.paint_uniform_color((1, 0, 0))
 
-    pc_general_right = o3.geometry.PointCloud()
-    pc_general_right.points = o3.utility.Vector3dVector(pts_3d_in_right)
-    pc_general_right.paint_uniform_color((0, 0, 1))
+        pc_general_right = o3.geometry.PointCloud()
+        pc_general_right.points = o3.utility.Vector3dVector(pts_3d_in_right)
+        pc_general_right.paint_uniform_color((0, 0, 1))
 
-    o3.visualization.draw_geometries([pc_general_left, pc_general_right])
+        o3.visualization.draw_geometries([pc_general_left, pc_general_right])
 
-    pc_general_right.transform(np.linalg.inv(tf_left_2_right))
-    o3.visualization.draw_geometries([pc_general_left, pc_general_right])
+        pc_general_right.transform(np.linalg.inv(tf_left_2_right))
+        o3.visualization.draw_geometries([pc_general_left, pc_general_right])
 
-    # frames
-    mesh = o3.geometry.TriangleMesh()
-    frame_left = mesh.create_coordinate_frame(size=20.0)
-    frame_right = mesh.create_coordinate_frame(size=20.0)
-    frame_right.transform(np.linalg.inv(tf_left_2_right))
-    o3.visualization.draw_geometries([pc_general_left, pc_general_right, frame_left, frame_right])
+        # frames
+        mesh = o3.geometry.TriangleMesh()
+        frame_left = mesh.create_coordinate_frame(size=20.0)
+        frame_right = mesh.create_coordinate_frame(size=20.0)
+        frame_right.transform(np.linalg.inv(tf_left_2_right))
+        o3.visualization.draw_geometries([pc_general_left, pc_general_right, frame_left, frame_right])
 
     return pts_3d_in_left, pts_3d_in_right
 
@@ -238,7 +238,7 @@ class Matcher:
         self.matcher_core = slam_lib.feature.Matcher()
         self.stereo = slam_lib.camera.cam.StereoCamera()
         self.stereo.read_cal_param_file_and_set_params(para_file_path='./config/bicam_cal_para_stereo.json')
-        self.flag_debug = True
+        self.flag_debug = False
 
     def match(self, img1, pts1, img2, pts2):
         """

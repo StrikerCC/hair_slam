@@ -407,7 +407,7 @@ def main():
         pts_2d_left_raw, pts_2d_right_raw = None, None
 
         if general_pts_match == 'superglue':
-            pts_2d_left_raw, pts_2d_right_raw = matcher.match(img_left_path, img_right_path)
+            pts_2d_left_raw, _, pts_2d_right_raw, _ = matcher.match(img_left_path, img_right_path)
             pts_2d_left_raw, pts_2d_right_raw, _ = slam_lib.geometry.epipolar_geometry_filter_matched_pts_pair(
                 pts_2d_left_raw, pts_2d_right_raw)
             print('get free hair pts in', time.time()-time_start_0, 'seconds')
