@@ -33,6 +33,7 @@ def match_start_image_xml():
 
     '''exec match'''
     id_match = matcher.match(img_left, pts_left, img_right, pts_right)
+    print('match id\n       ', id_match[:max(len(id_match), 5)])
 
     '''write result'''
     slam_lib.format.pts_2_xml(id_match, id_match_xml_path)
