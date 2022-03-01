@@ -1,4 +1,5 @@
 import os
+import threading
 
 import cv2
 import numpy as np
@@ -20,10 +21,12 @@ class Tracker:
 
         self.flag_debug = True
 
-    def track(self, img, rois):
+    def track(self, img, rois=None):
         """
         """
 
+        if rois is None:
+            rois = []
         tf = np.eye(3)
         update = False
 
@@ -59,40 +62,35 @@ class Tracker:
         return rois_output
 
 
-def main():
+def main(name=''):
+    print(name, 'at thread', threading.current_thread().name, 'by pid', os.getpid())
     t = Tracker()
     img_dir = '/home/cheng/proj/data/AutoPano/data/graf'
+
+    marked = False
     for i, img_name in enumerate(os.listdir(img_dir)):
-        roi = [[]]
         if img_name[-3:] == 'ppm':
-            roi = [np.asarray([[200, 200], [300, 200], [300, 500], [200, 500]])]
             img = cv2.imread(img_dir + '/' + img_name)
-            t.track(img, roi)
+            img = cv2.resize(img, (50, 50))
+            if not marked:
+                roi = [np.asarray([[200, 200], [300, 200], [300, 500], [200, 500]])]
+                t.track(img, roi)
+                marked = True
+            else:
+                t.track(img)
 
             rois = t.get_rois()
             print(rois)
-
             for roi in rois:
                 img = cv2.circle(img, center=roi[0], radius=50, thickness=3, color=(100, 0, 0))
                 img = cv2.circle(img, center=roi[1], radius=50, thickness=3, color=(100, 0, 0))
                 img = cv2.circle(img, center=roi[2], radius=50, thickness=3, color=(100, 0, 0))
                 img = cv2.circle(img, center=roi[3], radius=50, thickness=3, color=(100, 0, 0))
-
-            cv2.namedWindow('img', cv2.WINDOW_NORMAL)
-            cv2.imshow('img', img)
-            cv2.waitKey(0)
+            # cv2.namedWindow('img', cv2.WINDOW_NORMAL)
+            # cv2.imshow('img', img)
+            # cv2.waitKey(0)
+    print(name)
 
 
 if __name__ == '__main__':
     main()
-    device = 0
-
-    gray_0, inp0, scales0 = read_image(img_1, self.device, self.resize, rotation=0, resize_float=True)
-    gray_1, inp1, scales1 = read_image(img_2, self.device, self.resize, rotation=0, resize_float=True)
-
-    Matching(config).eval().to(device)
-    matcher = slam_lib
-    pred = matching({'image0': inp0, 'image1': inp1})
-
-    model = CNN()
-    output = model(img)

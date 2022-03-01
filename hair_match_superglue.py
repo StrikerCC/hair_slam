@@ -7,6 +7,7 @@
 """
 import time
 
+import os
 import cv2
 import numpy as np
 import open3d as o3
@@ -20,33 +21,6 @@ import slam_lib.format
 import slam_lib.geometry
 import slam_lib.mapping
 import slam_lib.vis
-
-
-def get_stereo_calibration(square_size, checkboard_size, data_stereo, calibration_parameter_saving_file_path,
-                           calbration=False):
-    """
-    """
-
-    '''calibration'''
-    stereo_cal_status = False
-    stereo = StereoCamera()
-
-    if calbration:
-        slam_lib.camera.calibration.stereo_calibrate(square_size, checkboard_size, data_stereo['left_calibration_img'],
-                                                     data_stereo['right_calibration_img'], binocular=stereo,
-                                                     file_path_2_save='./config/bicam_cal_para_stereo.json')
-        stereo_cal_status = True
-    else:
-        stereo_cal_status = stereo.read_cal_param_file_and_set_params(calibration_parameter_saving_file_path)
-    if stereo_cal_status:
-        print('calibration result saved at', calibration_parameter_saving_file_path)
-        print(stereo.cam_left.camera_matrix)
-        print(stereo.cam_right.camera_matrix)
-    else:
-        Warning('stereo not set')
-        Warning('stereo not set')
-        Warning('stereo not set')
-    return stereo
 
 
 def match_by_projection(stereo, img_left, left_interested_pts_2d_left_img, pts_3d_in_left,
@@ -233,11 +207,53 @@ def prerecon(stereo, matcher, img_left, img_right, flag_debug=False):
     return pts_3d_in_left, pts_3d_in_right
 
 
+def match_by_2dnn(left_interested_pts_2d_left_img, left_pre_matched_pts,
+                  right_interested_pts_2d_right_img, right_pre_matched_pts, distance_min=100.0):
+    """
+
+    :param left_interested_pts_2d_left_img:
+    :param left_pre_matched_pts:
+    :param right_interested_pts_2d_right_img:
+    :param right_pre_matched_pts:
+    :param distance_min:
+    :return:
+    """
+
+    'match interested pts with pre matched pts in each img'
+    id_left_pre_matched_pts_2_left_interested_pts = slam_lib.geometry.nearest_neighbor_points_2_points(left_pre_matched_pts, left_interested_pts_2d_left_img, distance_min=distance_min)
+    id_right_pre_matched_pts_2_right_interested_pts = slam_lib.geometry.nearest_neighbor_points_2_points(right_pre_matched_pts, right_interested_pts_2d_right_img, distance_min=distance_min)
+
+    'match interested pts in two side img'
+    id_left_pre_match_2_right_pre_match = []
+    id_left_interesting_2_right_interesting = []
+    id_left_interested_pts_set, id_right_interested_pts_set = set(), set()
+    i_left, i_right = 0, 0
+    for i in range(len(left_pre_matched_pts)):   # max possible loop number
+        # if any index over range
+        if i_left >= len(id_left_pre_matched_pts_2_left_interested_pts) or i_right >= len(id_right_pre_matched_pts_2_right_interested_pts):
+            break
+
+        if id_left_pre_matched_pts_2_left_interested_pts[i_left][0] > id_right_pre_matched_pts_2_right_interested_pts[i_right][0]:    # left is bigger, increase right
+            i_right += 1
+        elif id_left_pre_matched_pts_2_left_interested_pts[i_left][0] < id_right_pre_matched_pts_2_right_interested_pts[i_right][0]:
+            i_left += 1
+        else:
+            if id_left_pre_matched_pts_2_left_interested_pts[i_left][1] not in id_left_interested_pts_set and \
+                    id_right_pre_matched_pts_2_right_interested_pts[i_right][1] not in id_right_interested_pts_set:
+                id_left_pre_match_2_right_pre_match.append([id_left_pre_matched_pts_2_left_interested_pts[i_left][0], id_right_pre_matched_pts_2_right_interested_pts[i_right][0]])
+                id_left_interesting_2_right_interesting.append([id_left_pre_matched_pts_2_left_interested_pts[i_left][1], id_right_pre_matched_pts_2_right_interested_pts[i_right][1]])
+                id_left_interested_pts_set.add(id_left_pre_matched_pts_2_left_interested_pts[i_left][1])
+                id_right_interested_pts_set.add(id_right_pre_matched_pts_2_right_interested_pts[i_right][1])
+            i_left += 1
+            i_right += 1
+
+    print(id_left_pre_match_2_right_pre_match)
+    return id_left_interesting_2_right_interesting
+
+
 class Matcher:
     def __init__(self, ):
         self.matcher_core = slam_lib.feature.Matcher()
-        self.stereo = slam_lib.camera.cam.StereoCamera()
-        self.stereo.read_cal_param_file_and_set_params(para_file_path='./config/bicam_cal_para_stereo.json')
         self.flag_debug = False
 
     def match(self, img1, pts1, img2, pts2):
@@ -249,43 +265,123 @@ class Matcher:
         :param pts2:
         :return:
         """
+
+        distance_min = 20.0
+
         '''preprocess image'''
-        gray_left, gray_right = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY), cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+        if isinstance(img1, list):
+            img1 = np.asarray(img1).astype(np.uint8)
+        if isinstance(img2, list):
+            img2 = np.asarray(img2).astype(np.uint8)
+        if isinstance(pts1, list):
+            pts1 = np.asarray(pts1)
+        if isinstance(pts2, list):
+            pts2 = np.asarray(pts2)
 
-        '''pre 3d reconstruction: build 3d pts by superglue'''
-        print('getting superglue 3d pts')
-        pts_3d_in_left, pts_3d_in_right = prerecon(self.stereo, self.matcher_core, img1, img2,
-                                                   flag_debug=self.flag_debug)
-        print('got superglue 3d pts, # of pt : ', len(pts_3d_in_left))
+        print('img1 mean', np.mean(img1))
+        print('img2 mean', np.mean(img2))
 
-        '''in 3d reconstruction: match left and right interesting pts'''
-        print('getting match for interesting pts')
-        id_left_interested_2_right_interested = match_by_projection(self.stereo, img1, pts1, pts_3d_in_left,
-                                                                    img2, pts2, pts_3d_in_right,
-                                                                    flag_debug=self.flag_debug)
+        print(img1.shape, img2.shape)
+        print(img1.dtype, img2.dtype)
+
+        print(pts1.shape, pts2.shape)
+        print(pts1.dtype, pts2.dtype)
+
+        # gray_left, gray_right = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY), cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+
+        '''pre 2d match: match pts by superglue'''
+        print('getting superglue match pts')
+        pts_2d_left_super, _, pts_2d_right_super, _ = self.matcher_core.match(img1, img2)
+        pts_2d_left_sift, _, pts_2d_right_sift, _ = \
+            slam_lib.feature.get_epipolar_geometry_filtered_sift_matched_pts(img1, img2, shrink=0.8)
+
+        img_match_super = slam_lib.vis.draw_matches(img1, pts_2d_left_super, img2, pts_2d_right_super)
+        cv2.namedWindow('super match', cv2.WINDOW_NORMAL)
+        cv2.imshow('super match', img_match_super)
+        cv2.waitKey(0)
+
+        img_match_sift = slam_lib.vis.draw_matches(img1, pts_2d_left_sift, img2, pts_2d_right_sift)
+        cv2.namedWindow('sift match', cv2.WINDOW_NORMAL)
+        cv2.imshow('sift match', img_match_super)
+        cv2.waitKey(0)
+
+        # pts_2d_left_super, pts_2d_right_super, _ = slam_lib.geometry.epipolar_geometry_filter_matched_pts_pair(pts_2d_left_super, pts_2d_right_super)
+
+        pts_2d_left_pre, pts_2d_right_pre = np.concatenate([pts_2d_left_super, pts_2d_left_sift], axis=0),\
+                                            np.concatenate([pts_2d_right_super, pts_2d_right_sift], axis=0)
+
+        print('got superglue matched pts, # of pt : ', len(pts_2d_left_super))
+        print('got sift matched pts, # of pt : ', len(pts_2d_left_sift))
+
+        '''with the help of super point match: match left and right interesting pts'''
+        if len(pts_2d_right_pre) == 0 and len(pts_2d_right_pre) == 0:
+            print('could\'t get pre match pts')
+            return []
+        else:
+            print('got pre match ')
+
+        id_left_interested_2_right_interested = match_by_2dnn(pts1, pts_2d_left_pre,
+                                                              pts2, pts_2d_right_pre, distance_min=distance_min)
         print('got match for interesting pts, # of match: ', len(id_left_interested_2_right_interested))
 
+        self.draw_match(img1, pts1, img2, pts2, id_left_interested_2_right_interested)
         return id_left_interested_2_right_interested
+
+    def draw_match(self, img1, pts1, img2, pts2, match_id):
+        """
+
+        :param img1:
+        :param pts1:
+        :param img2:
+        :param pts2:
+        :param match_id:
+        :return:
+        """
+        '''preprocess input'''
+        if len(match_id) == 0:
+            return
+        if isinstance(img1, list):
+            img1 = np.asarray(img1).astype(np.uint8)
+        if isinstance(img2, list):
+            img2 = np.asarray(img2).astype(np.uint8)
+        if isinstance(pts1, list):
+            pts1 = np.asarray(pts1)
+        if isinstance(pts2, list):
+            pts2 = np.asarray(pts2)
+        if isinstance(match_id, list):
+            match_id = np.asarray(match_id)
+
+        pts1 = pts1[match_id[:, 0]]
+        pts2 = pts2[match_id[:, 1]]
+
+        for pt1, pt2 in zip(pts1, pts2):
+            img_match = slam_lib.vis.draw_matches(img1, pt1, img2, pt2)
+            cv2.namedWindow('match', cv2.WINDOW_NORMAL)
+            cv2.imshow('match', img_match)
+            key_pressed = cv2.waitKey(0)
+            if key_pressed == 'e':
+                break
+        img_match = slam_lib.vis.draw_matches(img1, pts1, img2, pts2)
+        cv2.namedWindow('match after all', cv2.WINDOW_NORMAL)
+        cv2.imshow('match after all', img_match)
+        cv2.waitKey(0)
 
 
 def main():
-    """calibration and 3d reconstruction"""
-    '''load data'''
-    checkboard_size = (11, 8)  # (board_width, board_height)
-    square_size = 2.0
-    dataset_dir = '/home/cheng/Pictures/data/202202211713'
-    data_stereo = slam_lib.dataset.get_calibration_and_img(dataset_dir)
     matcher = Matcher()
 
-    '''3d recon'''
-    for i, (img_left_path, img_right_path) in enumerate(zip(data_stereo['left_general_img'],
-                                                                             data_stereo['right_general_img'],)):
-        img_left, img_right = cv2.imread(img_left_path), cv2.imread(img_right_path)
+    img_last = None
+    img_dir = '/home/cheng/proj/data/AutoPano/data/graf/'
+    for i, img_name in enumerate(os.listdir(img_dir)):
+        if i == 0:
+            img_last = img_dir + img_name
+            continue
+        img_left, img_right = cv2.imread(img_last), cv2.imread(img_dir + img_name)
 
         '''get interested pts'''
         print('getting interesting pts')
         left_interested_pts_2d_left_img, des1, right_interested_pts_2d_right_img, des2 = \
-            slam_lib.feature.get_sift_pts_and_sift_feats(img_left, img_right, shrink=1.0, flag_debug=False)
+            slam_lib.feature.get_sift_pts_and_sift_feats(img_left, img_right, shrink=1.0, flag_debug=True)
 
         print('got interesting pts', len(left_interested_pts_2d_left_img), 'pts from left',
               len(right_interested_pts_2d_right_img), 'pts from right')
@@ -293,6 +389,10 @@ def main():
         '''match interesting pts'''
         id_left_interested_2_right_interested = matcher.match(img_left, left_interested_pts_2d_left_img,
                                                               img_right, right_interested_pts_2d_right_img)
+        img_last = img_dir + img_name
+
+        matcher.draw_match(img_left, left_interested_pts_2d_left_img,
+                           img_right, right_interested_pts_2d_right_img, id_left_interested_2_right_interested)
 
 
 if __name__ == '__main__':
