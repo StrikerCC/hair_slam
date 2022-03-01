@@ -1,8 +1,8 @@
-'''signal to functionality mapping'''
+"""signal to functionality mapping"""
 
-requests_dic = {
+signal_2_requests_dic = {
     "00": 'Match_Start_Image_Xml',
-    '01': ":Match_End_Xml",
+    '01': "Match_End_Xml",
 
     "20": 'Track_Start_New_Image_Xml_Left',
     "21": "Track_Start_Image_Left",
@@ -22,6 +22,12 @@ requests_dic = {
     "52": 'Mask_Respond_Image_Right',
     "53": 'Mask_Resquest_Image_Right'
 }
+
+requests_2_signal_dic = {}
+for key in signal_2_requests_dic.keys():
+    value = signal_2_requests_dic[key]
+    requests_2_signal_dic[value] = key
+
 
 file_path_dic = {
     'Path_Picture_Left': "./Algorithm/Pic/left.jpg",

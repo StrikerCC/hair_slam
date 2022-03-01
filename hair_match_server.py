@@ -1,4 +1,5 @@
 import socket
+import warnings
 import xml
 import sys
 
@@ -19,7 +20,8 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 socks = []
 
 '''signal to functionality mapping'''
-signal_2_request = socket_msg.requests_dic
+signal_2_request = socket_msg.signal_2_requests_dic
+request_2_signal = socket_msg.requests_2_signal_dic
 
 
 def start_tcp_server(ip, port):
@@ -64,10 +66,15 @@ def start_tcp_server(ip, port):
         print('heard', msg_de, 'from', ip, 'at', port)
         request = signal_2_request[msg_de]
 
+        t = None
         print('in  <<<<<<<<<<<<<<<<<<<<<<<<<', msg_de, request)
         if request == 'Match_Start_Image_Xml':
-
-            print(request)
+            finished_msg = 'Match_End_Xml'
+            t = threading.Thread(target=multithread_func.match_start_image_xml, name='match_start_image_xml')
+            t.start()
+            if not t.is_alive():
+                print("out >>>>>>>>>>>>>>>>>>>>>>>>>", msg_de, request)
+                send_msg(request_2_signal[finished_msg])
         elif request == 'Match_End_Xml':
             print()
         elif request == 'Track_Start_New_Image_Xml':
@@ -87,10 +94,7 @@ def start_tcp_server(ip, port):
         elif request == 'Mask_Resquest_Image':
             print()
         else:
-            raise Warning('Invalid request')
-
-        print("out >>>>>>>>>>>>>>>>>>>>>>>>>", msg_de, request)
-
+            warnings.warn('Invalid request')
 
         print("###############################")
 
