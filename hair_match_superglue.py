@@ -268,8 +268,9 @@ class Matcher:
         :return:
         """
 
-        distance_min = 20.0
-
+        distance_min = 100.0
+        if not pts1 or len(pts1) == 0 or not pts2 or len(pts2) == 0:
+            return None
         '''preprocess image'''
         if isinstance(img1, list):
             img1 = np.asarray(img1).astype(np.uint8)

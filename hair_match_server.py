@@ -144,4 +144,4 @@ def closeSock():
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    start_tcp_server('192.168.1.44', 6000)
+    start_tcp_server('127.0.0.1', 6000)

@@ -30,16 +30,30 @@ for key in signal_2_requests_dic.keys():
 
 
 file_path_dic = {
-    'Path_Picture_Left': "./Algorithm/Pic/left.jpg",
-    'Path_Picture_Right': "./Algorithm/Pic/right.jpg",
-    'Path_Xml_Match_Left': "./Algorithm/Xml/Match/matchLeft.xml",
-    'Path_Xml_Match_Right': "./Algorithm/Xml/Match/matchRight.xml",
-    'Path_Xml_Match_Id': "./Algorithm/Xml/Match/matchId.xml",
+    'Path_Picture_Left':    "D:/Algorithm/Pic/left.jpg",
+    'Path_Picture_Right':   "D:/Algorithm/Pic/right.jpg",
+    'Path_Xml_Match_Left':  "D:/Algorithm/Xml/Match/matchLeft.xml",
+    'Path_Xml_Match_Right': "D:/Algorithm/Xml/Match/matchRight.xml",
+    'Path_Xml_Match_Id':    "D:/Algorithm/Xml/Match/matchId.xml",
 
-    'Path_Xml_Track_Left': "./Algorithm/Xml/Track/trackLeft.xml",
-    'Path_Xml_Track_Right': "./Algorithm/Xml/Track/trackRight.xml",
-    'Path_Xml_Mask_Left': "./Algorithm/Xml/Mask/maskLeft.xml",
-    'Path_Xml_Mask_Right': "./Algorithm/Xml/Mask/maskRight.xml",
+    'Path_Xml_Track_Left':  "D:/Algorithm/Xml/Track/trackLeft.xml",
+    'Path_Xml_Track_Right': "D:/Algorithm/Xml/Track/trackRight.xml",
+    'Path_Xml_Mask_Left':   "D:/Algorithm/Xml/Mask/maskLeft.xml",
+    'Path_Xml_Mask_Right':  "D:/Algorithm/Xml/Mask/maskRight.xml",
 }
 
-xml_coordinates_dicimal_precision = 3
+
+# file_path_dic = {
+#     'Path_Picture_Left':    "./Algorithm/Pic/left.jpg",
+#     'Path_Picture_Right':   "./Algorithm/Pic/right.jpg",
+#     'Path_Xml_Match_Left':  "./Algorithm/Xml/Match/matchLeft.xml",
+#     'Path_Xml_Match_Right': "./Algorithm/Xml/Match/matchRight.xml",
+#     'Path_Xml_Match_Id':    "./Algorithm/Xml/Match/matchId.xml",
+#
+#     'Path_Xml_Track_Left':  "D:/Algorithm/Xml/Track/trackLeft.xml",
+#     'Path_Xml_Track_Right': "D:/Algorithm/Xml/Track/trackRight.xml",
+#     'Path_Xml_Mask_Left':   "D:/Algorithm/Xml/Mask/maskLeft.xml",
+#     'Path_Xml_Mask_Right':  "D:/Algorithm/Xml/Mask/maskRight.xml",
+# }
+
+xml_coordinates_decimal_precision = 3
