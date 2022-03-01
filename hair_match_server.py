@@ -1,12 +1,14 @@
 import socket
 import xml
 import sys
+
+import cv2
+
 import socket_msg
 
 import threading
 
-import hair_match_superglue
-import tracking_roi
+import multithread_func
 
 '''socket set up'''
 Communication_Count: int = 0
@@ -18,13 +20,6 @@ socks = []
 
 '''signal to functionality mapping'''
 signal_2_request = socket_msg.requests_dic
-file_path_dic = socket_msg.file_path_dic
-
-'''functionalities'''
-matcher = hair_match_superglue.Matcher()
-tracker_left = tracking_roi.Tracker()
-tracker_right = tracking_roi.Tracker()
-tracker_mask = tracking_roi.Tracker()
 
 
 def start_tcp_server(ip, port):
@@ -71,7 +66,8 @@ def start_tcp_server(ip, port):
 
         print('in  <<<<<<<<<<<<<<<<<<<<<<<<<', msg_de, request)
         if request == 'Match_Start_Image_Xml':
-            print()
+
+            print(request)
         elif request == 'Match_End_Xml':
             print()
         elif request == 'Track_Start_New_Image_Xml':

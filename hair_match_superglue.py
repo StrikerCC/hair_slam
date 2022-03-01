@@ -64,7 +64,6 @@ def match_by_projection(stereo, img_left, left_interested_pts_2d_left_img, pts_3
                                                                         right_interested_pts_3d_right_cam)
 
     '''nn search to match interested point'''
-    left_interested_pts_3d_left_cam_match, right_interested_pts_3d_left_cam_match, \
     id_left_interested_pts_2_right_interested_pts = \
         slam_lib.geometry.nearest_neighbor_points_2_points(left_interested_pts_3d_left_cam,
                                                            right_interested_pts_3d_left_cam, distance_min=interesting_pt_3drecon_distance_error)
@@ -218,6 +217,9 @@ def match_by_2dnn(left_interested_pts_2d_left_img, left_pre_matched_pts,
     :param distance_min:
     :return:
     """
+    assert left_pre_matched_pts.shape[1] == 2
+    assert left_interested_pts_2d_left_img.shape[1] == 2
+    assert left_pre_matched_pts.shape == right_pre_matched_pts.shape
 
     'match interested pts with pre matched pts in each img'
     id_left_pre_matched_pts_2_left_interested_pts = slam_lib.geometry.nearest_neighbor_points_2_points(left_pre_matched_pts, left_interested_pts_2d_left_img, distance_min=distance_min)
@@ -256,7 +258,7 @@ class Matcher:
         self.matcher_core = slam_lib.feature.Matcher()
         self.flag_debug = False
 
-    def match(self, img1, pts1, img2, pts2):
+    def match(self, img1, pts1, img2, pts2, flag_vis=False):
         """
 
         :param img1:
@@ -295,23 +297,14 @@ class Matcher:
         pts_2d_left_sift, _, pts_2d_right_sift, _ = \
             slam_lib.feature.get_epipolar_geometry_filtered_sift_matched_pts(img1, img2, shrink=0.8)
 
-        img_match_super = slam_lib.vis.draw_matches(img1, pts_2d_left_super, img2, pts_2d_right_super)
-        cv2.namedWindow('super match', cv2.WINDOW_NORMAL)
-        cv2.imshow('super match', img_match_super)
-        cv2.waitKey(0)
-
-        img_match_sift = slam_lib.vis.draw_matches(img1, pts_2d_left_sift, img2, pts_2d_right_sift)
-        cv2.namedWindow('sift match', cv2.WINDOW_NORMAL)
-        cv2.imshow('sift match', img_match_super)
-        cv2.waitKey(0)
-
         # pts_2d_left_super, pts_2d_right_super, _ = slam_lib.geometry.epipolar_geometry_filter_matched_pts_pair(pts_2d_left_super, pts_2d_right_super)
 
         pts_2d_left_pre, pts_2d_right_pre = np.concatenate([pts_2d_left_super, pts_2d_left_sift], axis=0),\
                                             np.concatenate([pts_2d_right_super, pts_2d_right_sift], axis=0)
 
-        print('got superglue matched pts, # of pt : ', len(pts_2d_left_super))
-        print('got sift matched pts, # of pt : ', len(pts_2d_left_sift))
+        print('got superglue matched pts, # of pt : ', len(pts_2d_left_super), pts_2d_right_super.shape)
+        print('got sift matched pts, # of pt : ', len(pts_2d_left_sift), pts_2d_left_sift.shape)
+        print('Check shape', pts_2d_left_pre.shape, pts_2d_right_pre.shape)
 
         '''with the help of super point match: match left and right interesting pts'''
         if len(pts_2d_right_pre) == 0 and len(pts_2d_right_pre) == 0:
@@ -324,10 +317,23 @@ class Matcher:
                                                               pts2, pts_2d_right_pre, distance_min=distance_min)
         print('got match for interesting pts, # of match: ', len(id_left_interested_2_right_interested))
 
-        self.draw_match(img1, pts1, img2, pts2, id_left_interested_2_right_interested)
+        if flag_vis:
+            # img_match_super = slam_lib.vis.draw_matches(img1, pts_2d_left_super, img2, pts_2d_right_super)
+            # cv2.namedWindow('super match', cv2.WINDOW_NORMAL)
+            # cv2.imshow('super match', img_match_super)
+            # cv2.waitKey(0)
+            self.draw_matches(img1, pts_2d_left_super, img2, pts_2d_right_super)
+
+            # img_match_sift = slam_lib.vis.draw_matches(img1, pts_2d_left_sift, img2, pts_2d_right_sift)
+            # cv2.namedWindow('sift match', cv2.WINDOW_NORMAL)
+            # cv2.imshow('sift match', img_match_super)
+            # cv2.waitKey(0)
+            self.draw_matches(img1, pts_2d_left_sift, img2, pts_2d_right_sift)
+
+            self.draw_matches(img1, pts1, img2, pts2, id_left_interested_2_right_interested)
         return id_left_interested_2_right_interested
 
-    def draw_match(self, img1, pts1, img2, pts2, match_id):
+    def draw_matches(self, img1, pts1, img2, pts2, match_id=None):
         """
 
         :param img1:
@@ -337,9 +343,14 @@ class Matcher:
         :param match_id:
         :return:
         """
+        if match_id is None:
+            match_id = []
         '''preprocess input'''
         if len(match_id) == 0:
-            return
+            if len(pts1) == len(pts2):
+                match_id = np.concatenate([np.arange(0, len(pts1))[None, :], np.arange(0, len(pts1))[None, :]], axis=0)
+            else:
+                return
         if isinstance(img1, list):
             img1 = np.asarray(img1).astype(np.uint8)
         if isinstance(img2, list):
@@ -355,6 +366,7 @@ class Matcher:
         pts2 = pts2[match_id[:, 1]]
 
         for pt1, pt2 in zip(pts1, pts2):
+            pt1, pt2 = pt1.reshape(-1, 2), pt2.reshape(-1, 2)
             img_match = slam_lib.vis.draw_matches(img1, pt1, img2, pt2)
             cv2.namedWindow('match', cv2.WINDOW_NORMAL)
             cv2.imshow('match', img_match)
@@ -391,8 +403,8 @@ def main():
                                                               img_right, right_interested_pts_2d_right_img)
         img_last = img_dir + img_name
 
-        matcher.draw_match(img_left, left_interested_pts_2d_left_img,
-                           img_right, right_interested_pts_2d_right_img, id_left_interested_2_right_interested)
+        matcher.draw_matches(img_left, left_interested_pts_2d_left_img,
+                             img_right, right_interested_pts_2d_right_img, id_left_interested_2_right_interested)
 
 
 if __name__ == '__main__':

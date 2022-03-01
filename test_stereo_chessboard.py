@@ -114,9 +114,11 @@ def test_match_by_projection(stereo, img_left, img_right, pts_2d_left_raw, pts_2
     # pc_general_left.points = o3.utility.Vector3dVector(pts_3d_in_left)
 
     # nn search to match interested point
-    interested_pts_3d_left_cam_match, interested_pts_3d_right_cam_match, id_left_interested_pts_2_right_interested_pts =\
-        slam_lib.geometry.nearest_neighbor_points_2_points(left_interested_pts_3d_left_cam,
+    id_left_interested_pts_2_right_interested_pts = slam_lib.geometry.nearest_neighbor_points_2_points(left_interested_pts_3d_left_cam,
                                                            right_interested_pts_3d_left_cam)
+    interested_pts_3d_left_cam_match = left_interested_pts_3d_left_cam[id_left_interested_pts_2_right_interested_pts[:, 0].tolist()]
+    interested_pts_3d_right_cam_match = right_interested_pts_3d_left_cam[id_left_interested_pts_2_right_interested_pts[:, 1].tolist()]
+
     time_match = time.time() - time_start
     time_start = time.time()
 

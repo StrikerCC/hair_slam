@@ -112,13 +112,15 @@ def test_match_by_projection(stereo, img_left, img_right, pts_2d_left_raw, pts_2
     # pc_general_left.points = o3.utility.Vector3dVector(pts_3d_in_left)
 
     # nn search to match interested point
-    left_interested_pts_3d_left_cam_match, right_interested_pts_3d_left_cam_match, \
     id_left_interested_pts_2_right_interested_pts = \
         slam_lib.geometry.nearest_neighbor_points_2_points(left_interested_pts_3d_left_cam,
                                                            right_interested_pts_3d_left_cam)
-
-    time_match = time.time() - time_start
-    time_start = time.time()
+    # left_interested_pts_3d_left_cam_match, \
+    # right_interested_pts_3d_left_cam_match = \
+    #     left_interested_pts_3d_left_cam[[id_left_interested_pts_2_right_interested_pts[:, 0].tolist()]], \
+    #     right_interested_pts_3d_left_cam[[id_left_interested_pts_2_right_interested_pts[:, 1].tolist()]]
+    # time_match = time.time() - time_start
+    # time_start = time.time()
 
     # filter by epipolar geometry
     left_interested_pts_2d_left_img_match, right_interested_pts_2d_right_img_match = \
@@ -155,7 +157,7 @@ def test_match_by_projection(stereo, img_left, img_right, pts_2d_left_raw, pts_2
 
     # statistic
     print('time feats', time_sift_computation)
-    print('time match', time_match)
+    # print('time match', time_match)
     print('time filter', time_filter)
 
     # vis
