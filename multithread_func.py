@@ -39,54 +39,44 @@ def match_start_image_xml():
     return True
 
 
-def Match_End_Xml():
-    return
-
-
-def Track_Start_New_Image_Xml():
-    path_picture_left = file_path_dic['Path_Picture_Left']
-    path_picture_right = file_path_dic['Path_Picture_Right']
-
+def match_end_xml():
     return
 
 
 ''''############################### track left #############################'''
-
-
-def Track_Start_Image_Left():
+def track_start_new_image_xml_left():
     path_picture = file_path_dic['Path_Picture_Left']
 
-    return
+    return True
 
+def track_start_image_left():
+    path_picture = file_path_dic['Path_Picture_Left']
 
-def Track_Start_Image_Right():
-    path_picture = file_path_dic['Path_Picture_Right']
-
-    return
-
-
-def Track_End_Xml():
-    return
+    return True
 
 
 ''''############################### track right #############################'''
+def track_start_new_image_xml_right():
+    path_picture = file_path_dic['Path_Picture_Right']
+
+    return True
+
+
+def track_start_image_right():
+    path_picture = file_path_dic['Path_Picture_Right']
+
+    return True
 
 ''''############################### track mask #############################'''
-
-
-def Mask_Start_Image_Xml():
+def mask_start_image_xml():
     path_picture = file_path_dic['Path_Picture_Right']
 
     return
 
 
-def Mask_End():
+def mask_respond_image():
     return
 
 
-def Mask_Respond_Image():
-    return
-
-
-def Mask_Resquest_Image():
+def mask_resquest_image():
     return

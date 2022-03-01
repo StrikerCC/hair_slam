@@ -15,12 +15,12 @@ signal_2_requests_dic = {
     "40": 'Mask_Start_Image_Xml_Left',
     "41": 'Mask_End_Left',
     "42": 'Mask_Respond_Image_Left',
-    "43": 'Mask_Resquest_Image_Left',
+    "43": 'Mask_Request_Image_Right',
 
     "50": 'Mask_Start_Image_Xml_Right',
     "51": 'Mask_End_Right',
     "52": 'Mask_Respond_Image_Right',
-    "53": 'Mask_Resquest_Image_Right'
+    "53": 'Mask_Request_Image_Right'
 }
 
 requests_2_signal_dic = {}
