@@ -65,9 +65,12 @@ def start_tcp_server(ip, port):
         request = signal_2_request[msg_de]
 
         print('in  <<<<<<<<<<<<<<<<<<<<<<<<<', msg_de, request)
+        t = None
         if request == 'Match_Start_Image_Xml':
-
             print(request)
+            t = threading.Thread(target=multithread_func.match_start_image_xml, name='match_start_image_xml')
+            t.start()
+            t.join()
         elif request == 'Match_End_Xml':
             print()
         elif request == 'Track_Start_New_Image_Xml':
@@ -106,6 +109,7 @@ def send_msg(msg):
     print("send ###############################")
     conn.send(msg)
 
+
 def closeSock():
     conn = socks[0]
     conn.close()
@@ -114,5 +118,5 @@ def closeSock():
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    start_tcp_server('192.168.1.44', 6000)
+    start_tcp_server('127.0.0.1', 6000)
 

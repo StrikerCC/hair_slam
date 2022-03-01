@@ -21,16 +21,16 @@ def main():
     # slam_lib.format.pts_2_xml(pts_left, pts_left_path)
     # slam_lib.format.pts_2_xml(pts_left, pts_right_path)
 
-    # t0 = threading.Thread(target=multithread_func.match_start_image_xml, name='match_start_image_xml')
+    t0 = threading.Thread(target=multithread_func.match_start_image_xml, name='match_start_image_xml')
     multithread_func.match_start_image_xml()
-    # t0.start()
+    t0.start()
     print('<<<<<<<<<<<<<<<<<<<<< main')
     print('<<<<<<<<<<<<<<<<<<<<< main')
     print('<<<<<<<<<<<<<<<<<<<<< main')
     print('<<<<<<<<<<<<<<<<<<<<< main')
     print('<<<<<<<<<<<<<<<<<<<<< main')
     print('<<<<<<<<<<<<<<<<<<<<< main')
-    # t0.join()
+    t0.join()
     print('<<<<<<<<<<<<<<<<<<<<< finish')
 
     return
