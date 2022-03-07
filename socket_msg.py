@@ -18,7 +18,7 @@ signal_2_requests_dic = {
 
     "50": 'Mask_Start_Image_Xml_Right',
     "51": 'Mask_End_Right',
-    "52": 'Mask_Request_Right',}
+    "52": 'Mask_Request_Right'}
 
 requests_2_signal_dic = {}
 for key in signal_2_requests_dic.keys():

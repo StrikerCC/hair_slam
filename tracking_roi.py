@@ -1,5 +1,6 @@
 import os
 import threading
+import warnings
 
 import cv2
 import numpy as np
@@ -86,6 +87,14 @@ class Tracker:
     def track(self, img, rois_new=None):
         """
         """
+        '''no new img, no tracking'''
+        if img is None or len(img) == 0:
+            warnings.warn('tracking receive empty img')
+            return
+        '''rois has nothing to track'''
+        if len(self.rois_first) and (rois_new is None or len(rois_new) == 0):
+            warnings.warn('tracking has no rois')
+            return
 
         if rois_new is None:
             rois_new = []

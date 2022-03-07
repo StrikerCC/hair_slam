@@ -18,8 +18,6 @@ file_path_dic = socket_msg.file_path_dic
 
 
 ''''############################### match #############################'''
-
-
 def match_start_image_xml(sock, msg_out):
     """"""
     '''reading data'''
@@ -55,11 +53,11 @@ def track_start_new_image_xml_left(sock, msg_out):
     '''reading data'''
 
     path_picture = file_path_dic['Path_Picture_Track_Left']
-    pts_xml_path = file_path_dic['Path_Xml_Track_Left']
+    pts_input_xml_path = file_path_dic['Path_Xml_Track_Left']
     pts_updated_xml_path = file_path_dic['Path_Xml_Tracked_Left']
 
     img = cv2.imread(path_picture)
-    rois = slam_lib.format.xml_2_rois(pts_xml_path)
+    rois = slam_lib.format.xml_2_rois(pts_input_xml_path)
 
     '''exec tracking'''
     tracker_left.track(img, rois)
@@ -96,11 +94,11 @@ def track_start_new_image_xml_right(sock, msg_out):
     """"""
     '''reading data'''
     path_picture = file_path_dic['Path_Picture_Track_Right']
-    pts_xml_path = file_path_dic['Path_Xml_Track_Right']
+    pts_input_xml_path = file_path_dic['Path_Xml_Track_Right']
     pts_updated_xml_path = file_path_dic['Path_Xml_Tracked_Right']
 
     img = cv2.imread(path_picture)
-    pts = slam_lib.format.xml_2_rois(pts_xml_path)
+    pts = slam_lib.format.xml_2_rois(pts_input_xml_path)
 
     '''exec tracking'''
     tracker_right.track(img, pts)
@@ -137,11 +135,11 @@ def mask_start_image_xml_left(sock, msg_out):
     """"""
     '''reading data'''
     path_picture = file_path_dic['Path_Picture_Track_Left']
-    pts_xml_path = file_path_dic['Path_Xml_Mask_Track_Left']
+    pts_input_xml_path = file_path_dic['Path_Xml_Mask_Track_Left']
     pts_updated_xml_path = file_path_dic['Path_Xml_Mask_Tracked_Left']
 
     img = cv2.imread(path_picture)
-    pts = slam_lib.format.xml_2_rois(pts_xml_path)
+    pts = slam_lib.format.xml_2_rois(pts_input_xml_path)
 
     '''exec tracking'''
     tracker_right.track(img, pts)
@@ -176,11 +174,11 @@ def mask_start_image_xml_right(sock, msg_out):
     """"""
     '''reading data'''
     path_picture = file_path_dic['Path_Picture_Track_Right']
-    pts_xml_path = file_path_dic['Path_Xml_Mask_Track_Right']
+    pts_input_xml_path = file_path_dic['Path_Xml_Mask_Track_Right']
     pts_updated_xml_path = file_path_dic['Path_Xml_Mask_Tracked_Right']
 
     img = cv2.imread(path_picture)
-    pts = slam_lib.format.xml_2_rois(pts_xml_path)
+    pts = slam_lib.format.xml_2_rois(pts_input_xml_path)
 
     '''exec tracking'''
     tracker_right.track(img, pts)
@@ -196,7 +194,7 @@ def mask_start_image_xml_right(sock, msg_out):
 def request_right_mask(sock, msg_out):
     """"""
     '''reading data'''
-    path_picture = file_path_dic['Path_Xml_Mask_Right']
+    path_picture = file_path_dic['Path_Picture_Track_Right']
     pts_updated_xml_path = file_path_dic['Path_Xml_Mask_Tracked_Right']
 
     img = cv2.imread(path_picture)

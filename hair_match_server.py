@@ -125,7 +125,7 @@ def start_tcp_server(ip, port):
                 t_track_l = threading.Thread(target=multithread_func.mask_start_image_xml_left,
                                              name='mask_start_image_xml_left', args=(socks[0], finished_signal))
                 t_track_l.start()
-            elif request == 'Mask_Respond_Image_Left':
+            elif request == 'Mask_Request_Left':
                 finished_msg = 'Mask_End_Left'
                 finished_signal = request_2_signal[finished_msg]
                 t_track_l = threading.Thread(target=multithread_func.request_left_mask,
@@ -139,7 +139,7 @@ def start_tcp_server(ip, port):
                 t_track_l = threading.Thread(target=multithread_func.mask_start_image_xml_right,
                                              name='mask_start_image_xml_right', args=(socks[0], finished_signal))
                 t_track_l.start()
-            elif request == 'Mask_Respond_Image_Right':
+            elif request == 'Mask_Request_Right':
                 finished_msg = 'Mask_End_Right'
                 finished_signal = request_2_signal[finished_msg]
                 t_track_l = threading.Thread(target=multithread_func.request_right_mask,
