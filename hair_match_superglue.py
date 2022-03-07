@@ -270,6 +270,7 @@ class Matcher:
 
         distance_min = 100.0
         if not pts1 or len(pts1) == 0 or not pts2 or len(pts2) == 0:
+            print('Get empty interesting pts, left len', len(pts1), 'right len', len(pts2))
             return None
         '''preprocess image'''
         if isinstance(img1, list):
@@ -297,20 +298,27 @@ class Matcher:
         pts_2d_left_super, _, pts_2d_right_super, _ = self.matcher_core.match(img1, img2)
         pts_2d_left_sift, _, pts_2d_right_sift, _ = \
             slam_lib.feature.get_epipolar_geometry_filtered_sift_matched_pts(img1, img2, shrink=0.8)
-
         # pts_2d_left_super, pts_2d_right_super, _ = slam_lib.geometry.epipolar_geometry_filter_matched_pts_pair(pts_2d_left_super, pts_2d_right_super)
 
-        pts_2d_left_pre, pts_2d_right_pre = np.concatenate([pts_2d_left_super, pts_2d_left_sift], axis=0),\
-                                            np.concatenate([pts_2d_right_super, pts_2d_right_sift], axis=0)
+        pts_2d_left_pre, pts_2d_right_pre = None, None
+        if pts_2d_left_super is not None and len(pts_2d_left_super) > 0 and pts_2d_right_super is not None and len(pts_2d_right_super) > 0:
+            pts_2d_left_pre, pts_2d_right_pre = pts_2d_left_super, pts_2d_right_super
+            print('got superglue matched pts, # of pt : ', len(pts_2d_left_super), pts_2d_right_super.shape)
+        if pts_2d_left_sift is not None and len(pts_2d_left_sift) > 0 and pts_2d_right_sift is not None and len(pts_2d_right_sift) > 0:
+            pts_2d_left_pre, pts_2d_right_pre = np.concatenate([pts_2d_left_super, pts_2d_left_sift], axis=0), \
+                                                np.concatenate([pts_2d_right_super, pts_2d_right_sift], axis=0)
+            print('got sift matched pts, # of pt : ', len(pts_2d_left_sift), pts_2d_left_sift.shape)
 
-        print('got superglue matched pts, # of pt : ', len(pts_2d_left_super), pts_2d_right_super.shape)
-        print('got sift matched pts, # of pt : ', len(pts_2d_left_sift), pts_2d_left_sift.shape)
+        if pts_2d_left_pre is None or len(pts_2d_left_pre) == 0 and pts_2d_right_pre is None or len(pts_2d_right_pre) == 0:
+            print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ Pre match got nothing $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+            return [[-1, -1]]
+
         print('Check shape', pts_2d_left_pre.shape, pts_2d_right_pre.shape)
 
         '''with the help of super point match: match left and right interesting pts'''
         if len(pts_2d_right_pre) == 0 and len(pts_2d_right_pre) == 0:
             print('could\'t get pre match pts')
-            return []
+            return [[-1, -1]]
         else:
             print('got pre match ')
 
@@ -378,6 +386,82 @@ class Matcher:
         cv2.namedWindow('match after all', cv2.WINDOW_NORMAL)
         cv2.imshow('match after all', img_match)
         cv2.waitKey(0)
+
+    def save_pts(self, img1, pts1, img2, pts2):
+        if isinstance(img1, list):
+            img1 = np.asarray(img1).astype(np.uint8)
+        if isinstance(img2, list):
+            img2 = np.asarray(img2).astype(np.uint8)
+        if isinstance(pts1, list):
+            pts1 = np.asarray(pts1)
+        if isinstance(pts2, list):
+            pts2 = np.asarray(pts2)
+        width_synthesis = img1.shape[1] + img2.shape[1]
+        height_synthesis = max(img1.shape[0], img2.shape[0])
+        img1_pts = slam_lib.vis.draw_pts(img1, pts1)
+        img2_pts = slam_lib.vis.draw_pts(img2, pts2)
+        img_synthesis = np.zeros((height_synthesis, width_synthesis, 3))
+        img_synthesis[0:img1.shape[0], 0:img1.shape[1], :] = img1_pts
+        img_synthesis[0:img2.shape[0], img1.shape[1]:, :] = img2_pts
+
+        '''saving'''
+        saving_dir = './data/hair/'
+        num_img = len(os.listdir(saving_dir)) + 1
+        saving_img_name = 'pts_' + str(num_img) + '.jpg'
+        cv2.imwrite(saving_dir + saving_img_name, img_synthesis)
+
+    def save_matches(self, img1, pts1, img2, pts2, match_id=None):
+        """
+
+        :param img1:
+        :param pts1:
+        :param img2:
+        :param pts2:
+        :param match_id:
+        :return:
+        """
+        if match_id is None:
+            match_id = []
+        '''preprocess input'''
+        if len(match_id) == 0:
+            if len(pts1) == len(pts2):
+                match_id = np.concatenate([np.arange(0, len(pts1))[None, :], np.arange(0, len(pts1))[None, :]], axis=0)
+            else:
+                return
+        if isinstance(img1, list):
+            img1 = np.asarray(img1).astype(np.uint8)
+        if isinstance(img2, list):
+            img2 = np.asarray(img2).astype(np.uint8)
+        if isinstance(pts1, list):
+            pts1 = np.asarray(pts1)
+        if isinstance(pts2, list):
+            pts2 = np.asarray(pts2)
+        if isinstance(match_id, list):
+            match_id = np.asarray(match_id)
+
+        pts1 = pts1[match_id[:, 0]]
+        pts2 = pts2[match_id[:, 1]]
+
+        img_match = slam_lib.vis.draw_matches(img1, pts1, img2, pts2)
+
+        print(img_match.dtype)
+        print(np.max(img_match))
+        print(np.mean(img_match))
+
+        if np.max(img_match) <= 1.0:
+            img_match = img_match * 255.0
+            img_match = img_match.astype(np.uint8)
+
+        print(img_match.dtype)
+        print(np.max(img_match))
+        print(np.mean(img_match))
+
+        '''saving'''
+        saving_dir = './data/hair/'
+
+        num_img = len(os.listdir(saving_dir)) + 1
+        saving_img_name = 'match_' + str(num_img) + '.jpg'
+        cv2.imwrite(saving_dir + saving_img_name, img_match)
 
 
 def main():
