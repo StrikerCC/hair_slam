@@ -66,7 +66,6 @@ def start_tcp_server(ip, port):
         msg = client.recv(10)
         len_msg = 2
         msg_des_string = msg_left_over + msg.decode('utf-8')
-
         print(ip, 'at', port, 'give', msg_des_string)
 
         msg_des = []
@@ -150,7 +149,6 @@ def start_tcp_server(ip, port):
                 warnings.warn('Invalid request')
 
             print("###############################")
-
 
 # def send_msg(msg):
 #     conn = socks[0]

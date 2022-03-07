@@ -159,7 +159,6 @@ def request_left_mask(sock, msg_out):
     '''reading data'''
     path_picture = file_path_dic['Path_Picture_Track_Left']
     pts_updated_xml_path = file_path_dic['Path_Xml_Mask_Tracked_Left']
-
     img = cv2.imread(path_picture)
 
     '''exec tracking'''
@@ -211,4 +210,3 @@ def request_right_mask(sock, msg_out):
     send_msg(sock, msg_out)
     print("out >>>>>>>>>>>>>>>>>>>>>>>>>", msg_out, '->', sock)
     return True
-

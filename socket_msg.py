@@ -2,7 +2,7 @@
 
 signal_2_requests_dic = {
     "00": 'Match_Start_Image_Xml',
-    "01": "Match_End_Xml",
+    '01': "Match_End_Xml",
 
     "20": 'Track_Start_New_Image_Xml_Left',
     "21": "Track_Start_Image_Left",
@@ -18,8 +18,7 @@ signal_2_requests_dic = {
 
     "50": 'Mask_Start_Image_Xml_Right',
     "51": 'Mask_End_Right',
-    "52": 'Mask_Request_Right',
-}
+    "52": 'Mask_Request_Right',}
 
 requests_2_signal_dic = {}
 for key in signal_2_requests_dic.keys():
