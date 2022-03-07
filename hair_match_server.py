@@ -60,86 +60,120 @@ def start_tcp_server(ip, port):
         socks.append(client)
         print("having a connection")
         break
+
+    msg_left_over = ''
     while True:
-        msg = client.recv(16384)
-        msg_de = msg.decode('utf-8')
-        print('heard', msg_de, 'from', ip, 'at', port)
-        request = signal_2_request[msg_de]
+        msg = client.recv(10)
+        len_msg = 2
+        msg_des_string = msg_left_over + msg.decode('utf-8')
+        print(ip, 'at', port, 'give', msg_des_string)
 
-        # t = None
-        print('in  <<<<<<<<<<<<<<<<<<<<<<<<<', msg_de, request)
-        # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< match >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
-        if request == 'Match_Start_Image_Xml':
-            finished_msg = 'Match_End_Xml'
-            t_match = threading.Thread(target=multithread_func.match_start_image_xml, name='match_start_image_xml')
-            t_match.start()
-            if not t_match.is_alive():
-                print("out >>>>>>>>>>>>>>>>>>>>>>>>>", msg_de, request)
-                send_msg(request_2_signal[finished_msg])
+        msg_des = []
+        num_msg = len(msg_des_string) // len_msg
+        msg_left_over = msg_des_string[num_msg*len_msg:]
 
-        # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< track left >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
-        elif request == 'Track_Start_New_Image_Xml_Left':
-            finished_msg = 'Track_End_Xml_Left'
-            t_track_l = threading.Thread(target=multithread_func.track_start_image_left(), name='match_start_image_xml')
-            t_track_l.start()
-            if not t_track_l.is_alive():
-                print("out >>>>>>>>>>>>>>>>>>>>>>>>>", msg_de, request)
-                send_msg(request_2_signal[finished_msg])
-        elif request == 'Track_Start_Image_Left':
-            finished_msg = 'Track_End_Xml_Left'
+        for i in range(num_msg):
+            msg_des.append(msg_des_string[i*len_msg:i*len_msg+len_msg])
+        print('heard', msg_des, 'from', ip, 'at', port)
 
-        # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< track right >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
-        elif request == 'Track_Start_New_Image_Xml_Right':
-            finished_msg = 'Track_End_Xml_Right'
-        elif request == 'Track_Start_Image_Right':
-            finished_msg = 'Track_End_Xml_Right'
-            print()
+        for msg_de in msg_des:
+            print('heard', msg_de, 'from', ip, 'at', port)
+            request = signal_2_request[msg_de]
 
-        # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< mask left >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
-        elif request == 'Mask_Start_Image_Xml_Left':
-            finished_msg = 'Mask_End_Left'
-        elif request == 'Mask_Respond_Image_Left':
-            finished_msg = 'Mask_End_Left'
-        elif request == 'Mask_Resquest_Image_Left':
-            finished_msg = 'Mask_End_Left'
+            print('in  <<<<<<<<<<<<<<<<<<<<<<<<<', sock, '<-', msg_de, request)
+            ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< match >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
+            if request == 'Match_Start_Image_Xml':
+                finished_msg = 'Match_End_Xml'
+                finished_signal = request_2_signal[finished_msg]
+                t_match = threading.Thread(target=multithread_func.match_start_image_xml, name='match_start_image_xml',
+                                           args=(socks[0], finished_signal))
+                t_match.start()
 
-        # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< mask right >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
-        elif request == 'Mask_Start_Image_Xml_Right':
-            finished_msg = 'Mask_End_Right'
-        elif request == 'Mask_Respond_Image_Right':
-            finished_msg = 'Mask_End_Right'
-        elif request == 'Mask_Request_Image_Right':
-            finished_msg = 'Mask_End_Right'
+            # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< track left >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
+            elif request == 'Track_Start_New_Image_Xml_Left':
+                finished_msg = 'Track_End_Xml_Left'
+                finished_signal = request_2_signal[finished_msg]
+                t_track_l = threading.Thread(target=multithread_func.track_start_new_image_xml_left,
+                                             name='track_start_new_image_xml_left', args=(socks[0], finished_signal))
+                t_track_l.start()
 
-        elif request == 'Match_End_Xml':
-            warnings.warn(request, 'should be my request')
-        elif request == 'Track_End_Xml_Left':
-            warnings.warn(request, 'should be my request')
-        elif 'Mask_End' in request:
-            warnings.warn(request, 'should be my request')
+            elif request == 'Track_Start_Image_Left':
+                finished_msg = 'Track_End_Xml_Left'
+                finished_signal = request_2_signal[finished_msg]
+                t_track_l = threading.Thread(target=multithread_func.track_start_image_left, name='track_start_image_left',
+                                             args=(socks[0], finished_signal))
+                t_track_l.start()
 
-        else:
-            warnings.warn('Invalid request')
+            # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< track right >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
+            elif request == 'Track_Start_New_Image_Xml_Right':
+                finished_msg = 'Track_End_Xml_Right'
+                finished_signal = request_2_signal[finished_msg]
+                t_track_l = threading.Thread(target=multithread_func.track_start_new_image_xml_right,
+                                             name='track_start_new_image_xml_right', args=(socks[0], finished_signal))
+                t_track_l.start()
+            elif request == 'Track_Start_Image_Right':
+                finished_msg = 'Track_End_Xml_Right'
+                finished_signal = request_2_signal[finished_msg]
+                t_track_l = threading.Thread(target=multithread_func.track_start_image_right, name='track_start_image_right',
+                                             args=(socks[0], finished_signal))
+                t_track_l.start()
 
-        print("###############################")
+            # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< mask left >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
+            elif request == 'Mask_Start_Image_Xml_Left':
+                finished_msg = 'Mask_End_Left'
+                finished_signal = request_2_signal[finished_msg]
+                t_track_l = threading.Thread(target=multithread_func.mask_start_image_xml_left,
+                                             name='mask_start_image_xml_left', args=(socks[0], finished_signal))
+                t_track_l.start()
+            elif request == 'Mask_Request_Left':
+                finished_msg = 'Mask_End_Left'
+                finished_signal = request_2_signal[finished_msg]
+                t_track_l = threading.Thread(target=multithread_func.request_left_mask,
+                                             name='request_left_mask', args=(socks[0], finished_signal))
+                t_track_l.start()
 
-        send_msg(2)
+            # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< mask right >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
+            elif request == 'Mask_Start_Image_Xml_Right':
+                finished_msg = 'Mask_End_Right'
+                finished_signal = request_2_signal[finished_msg]
+                t_track_l = threading.Thread(target=multithread_func.mask_start_image_xml_right,
+                                             name='mask_start_image_xml_right', args=(socks[0], finished_signal))
+                t_track_l.start()
+            elif request == 'Mask_Request_Right':
+                finished_msg = 'Mask_End_Right'
+                finished_signal = request_2_signal[finished_msg]
+                t_track_l = threading.Thread(target=multithread_func.request_right_mask,
+                                             name='request_right_mask', args=(socks[0], finished_signal))
+                t_track_l.start()
+            else:
+                warnings.warn('Invalid request')
 
+            print("###############################")
 
-def send_msg(msg):
-    conn = socks[0]
-    msg = ("%d" % msg)
-    msg = msg.encode('utf-8')
-    print("send ###############################")
-    print(msg)
-    print("send ###############################")
-    conn.send(msg)
+# def send_msg(msg):
+#     conn = socks[0]
+#     msg = ("%d" % msg)
+#     msg = msg.encode('utf-8')
+#     print("send ###############################")
+#     print(msg)
+#     print("send ###############################")
+#     conn.send(msg)
 
 
 def closeSock():
     conn = socks[0]
     conn.close()
     sock.close()
+
+
+def send_msg(sock, msg):
+    mono = sock
+    # if isinstance(msg, float):
+    #     msg = int(msg)
+    # if isinstance(msg, int):
+    #     msg = ("%d" % msg)
+    msg = msg.encode('utf-8')
+    mono.send(msg)
 
 
 # Press the green button in the gutter to run the script.

@@ -1,5 +1,6 @@
 import os
 import threading
+import warnings
 
 import cv2
 import numpy as np
@@ -9,56 +10,133 @@ import slam_lib.geometry
 import slam_lib.mapping
 
 
+# class Tracker:
+#     def __init__(self):
+#         self.matcher_core = slam_lib.feature.Matcher()
+#
+#         self.track_successful = False
+#
+#         self.frame_last = None
+#         self.pts_last = None
+#         self.feats_last = None
+#
+#         self.rois_last = []
+#
+#         self.flag_debug = True
+#
+#     def track(self, img, rois_new=None):
+#         """
+#         """
+#
+#         if rois_new is None:
+#             rois_new = []
+#         for i in range(len(rois_new)):
+#             rois_new[i] = np.asarray(rois_new[i])
+#
+#         tf = np.eye(3)
+#
+#         '''compute tf from last to current input'''
+#         if self.frame_last is not None:
+#             '''match'''
+#             print('getting superglue match pts')
+#             pts_last, _, pts, _ = self.matcher_core.match(self.frame_last, img)
+#             # pts_last, pts, _ = slam_lib.geometry.epipolar_geometry_filter_matched_pts_pair(pts_last, pts)
+#             print('got match for interesting pts, # of match: ', len(pts))
+#
+#             '''compute tf'''
+#             if len(pts) > 4:
+#                 self.track_successful = True
+#                 tf, mask_ = cv2.findHomography(pts_last, pts)
+#         else:
+#             self.track_successful = True
+#
+#         '''update all roi and last frame'''
+#         if self.track_successful:
+#             '''update last data'''
+#             self.frame_last = img
+#
+#             '''update rois'''
+#             for i_roi, roi_last in enumerate(self.rois_last):
+#                 self.rois_last[i_roi] = slam_lib.mapping.transform_pt_2d(tf, roi_last)
+#         self.rois_last += rois_new
+#         return
+#
+#     def get_rois(self):
+#         if not self.track_successful:
+#             return []
+#         rois_output = []
+#         for roi in self.rois_last:
+#             rois_output.append(roi.astype(int).tolist())
+#         return rois_output
+
+
 class Tracker:
     def __init__(self):
         self.matcher_core = slam_lib.feature.Matcher()
 
-        self.frame_last = None
-        self.pts_last = None
-        self.feats_last = None
+        self.track_successful = False
 
-        self.rois_last = []
+        self.frame_first = None
+        self.pts_first = None
+        self.feats_first = None
 
+        self.rois_first = []
+        self.tf_first_2_new = None
         self.flag_debug = True
 
-    def track(self, img, rois=None):
+    def track(self, img, rois_new=None):
         """
         """
+        '''no new img, no tracking'''
+        if img is None or len(img) == 0:
+            warnings.warn('tracking receive empty img')
+            return
+        '''rois has nothing to track'''
+        if len(self.rois_first) and (rois_new is None or len(rois_new) == 0):
+            warnings.warn('tracking has no rois')
+            return
 
-        if rois is None:
-            rois = []
+        if rois_new is None:
+            rois_new = []
+        for i in range(len(rois_new)):
+            rois_new[i] = np.asarray(rois_new[i])
+
         tf = np.eye(3)
-        update = False
 
-        if self.frame_last is not None:
+        '''compute tf from last to current input'''
+        if self.frame_first is not None:
             '''match'''
             print('getting superglue match pts')
-            pts_last, _, pts, _ = self.matcher_core.match(self.frame_last, img)
+            pts_last, _, pts, _ = self.matcher_core.match(self.frame_first, img)
             # pts_last, pts, _ = slam_lib.geometry.epipolar_geometry_filter_matched_pts_pair(pts_last, pts)
             print('got match for interesting pts, # of match: ', len(pts))
 
             '''compute tf'''
             if len(pts) > 4:
-                update = True
+                self.track_successful = True
                 tf, mask_ = cv2.findHomography(pts_last, pts)
+                self.tf_first_2_new = tf
+
         else:
-            update = True
+            self.frame_first = img
+            self.track_successful = True
+            self.tf_first_2_new = tf
 
-        if update:
+        '''update all roi and last frame'''
+        if self.track_successful:
             '''update last data'''
-            self.frame_last = img
 
-            '''update rois'''
-            for i_roi, roi_last in enumerate(self.rois_last):
-                self.rois_last[i_roi] = slam_lib.mapping.transform_pt_2d(tf, roi_last)
-        self.rois_last += rois
-
+            '''update rois to first'''
+            for i_roi, roi_new in enumerate(rois_new):
+                self.rois_first.append(slam_lib.mapping.transform_pt_2d(np.linalg.inv(tf), roi_new))
         return
 
     def get_rois(self):
+        if not self.track_successful:
+            return []
         rois_output = []
-        for roi in self.rois_last:
-            rois_output.append(roi.astype(int).tolist())
+        for roi in self.rois_first:
+            rois_output.append(slam_lib.mapping.transform_pt_2d(self.tf_first_2_new, roi).astype(int).tolist())
         return rois_output
 
 
