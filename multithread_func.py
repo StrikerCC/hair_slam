@@ -11,7 +11,8 @@ from hair_match_server import send_msg
 matcher = hair_match_superglue.Matcher()
 tracker_left = tracking_roi.Tracker()
 tracker_right = tracking_roi.Tracker()
-# tracker_mask = tracking_roi.Tracker()
+tracker_left_mask = tracking_roi.Tracker()
+tracker_right_mask = tracking_roi.Tracker()
 
 '''file paths'''
 file_path_dic = socket_msg.file_path_dic
@@ -142,8 +143,8 @@ def mask_start_image_xml_left(sock, msg_out):
     pts = slam_lib.format.xml_2_rois(pts_input_xml_path)
 
     '''exec tracking'''
-    tracker_right.track(img, pts)
-    pts_updated = tracker_right.get_rois()
+    tracker_left_mask.track(img, pts)
+    pts_updated = tracker_left_mask.get_rois()
 
     '''send finish signal'''
     slam_lib.format.rois_2_xml(pts_updated, pts_updated_xml_path)
@@ -160,8 +161,8 @@ def request_left_mask(sock, msg_out):
     img = cv2.imread(path_picture)
 
     '''exec tracking'''
-    tracker_right.track(img)
-    pts_updated = tracker_right.get_rois()
+    tracker_left_mask.track(img)
+    pts_updated = tracker_left_mask.get_rois()
 
     '''send finish signal'''
     slam_lib.format.rois_2_xml(pts_updated, pts_updated_xml_path)
@@ -181,8 +182,8 @@ def mask_start_image_xml_right(sock, msg_out):
     pts = slam_lib.format.xml_2_rois(pts_input_xml_path)
 
     '''exec tracking'''
-    tracker_right.track(img, pts)
-    pts_updated = tracker_right.get_rois()
+    tracker_right_mask.track(img, pts)
+    pts_updated = tracker_right_mask.get_rois()
 
     '''send finish signal'''
     slam_lib.format.rois_2_xml(pts_updated, pts_updated_xml_path)
@@ -200,8 +201,8 @@ def request_right_mask(sock, msg_out):
     img = cv2.imread(path_picture)
 
     '''exec tracking'''
-    tracker_right.track(img)
-    pts_updated = tracker_right.get_rois()
+    tracker_right_mask.track(img)
+    pts_updated = tracker_right_mask.get_rois()
 
     '''send finish signal'''
     slam_lib.format.rois_2_xml(pts_updated, pts_updated_xml_path)
