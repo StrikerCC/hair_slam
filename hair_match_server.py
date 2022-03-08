@@ -107,6 +107,21 @@ def start_tcp_server(ip, port):
                                                  args=(socks[0], finished_signal))
                     t_track_l.start()
 
+                # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< mask left >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
+                elif request == 'Push_Mask_Xml_Left':
+                    finished_msg = 'Track_End_Xml_Left'
+                    finished_signal = request_2_signal[finished_msg]
+                    t_track_l = threading.Thread(target=multithread_func.push_mask_xml_left, name='push_mask_xml_left',
+                                                 args=(socks[0], finished_signal))
+                    t_track_l.start()
+
+                elif request == 'Peek_Mask_Xml_Left':
+                    finished_msg = 'Track_End_Xml_Left'
+                    finished_signal = request_2_signal[finished_msg]
+                    t_track_l = threading.Thread(target=multithread_func.peek_mask_xml_left, name='peek_mask_xml_left',
+                                                 args=(socks[0], finished_signal))
+                    t_track_l.start()
+
                 # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< track right >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
                 elif request == 'Track_Start_New_Image_Xml_Right':
                     finished_msg = 'Track_End_Xml_Right'
@@ -121,33 +136,48 @@ def start_tcp_server(ip, port):
                                                  args=(socks[0], finished_signal))
                     t_track_l.start()
 
-                # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< mask left >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
-                elif request == 'Mask_Start_Image_Xml_Left':
-                    finished_msg = 'Mask_End_Left'
+                # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< mask right >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
+                elif request == 'Push_Mask_Xml_Right':
+                    finished_msg = 'Track_End_Xml_Right'
                     finished_signal = request_2_signal[finished_msg]
-                    t_track_l = threading.Thread(target=multithread_func.mask_start_image_xml_left,
-                                                 name='mask_start_image_xml_left', args=(socks[0], finished_signal))
-                    t_track_l.start()
-                elif request == 'Mask_Request_Left':
-                    finished_msg = 'Mask_End_Left'
-                    finished_signal = request_2_signal[finished_msg]
-                    t_track_l = threading.Thread(target=multithread_func.request_left_mask,
-                                                 name='request_left_mask', args=(socks[0], finished_signal))
+                    t_track_l = threading.Thread(target=multithread_func.push_mask_xml_right, name='push_mask_xml_right',
+                                                 args=(socks[0], finished_signal))
                     t_track_l.start()
 
-                # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< mask right >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
-                elif request == 'Mask_Start_Image_Xml_Right':
-                    finished_msg = 'Mask_End_Right'
+                elif request == 'Peek_Mask_Xml_Left':
+                    finished_msg = 'Track_End_Xml_Left'
                     finished_signal = request_2_signal[finished_msg]
-                    t_track_l = threading.Thread(target=multithread_func.mask_start_image_xml_right,
-                                                 name='mask_start_image_xml_right', args=(socks[0], finished_signal))
+                    t_track_l = threading.Thread(target=multithread_func.peek_mask_xml_right, name='peek_mask_xml_right',
+                                                 args=(socks[0], finished_signal))
                     t_track_l.start()
-                elif request == 'Mask_Request_Right':
-                    finished_msg = 'Mask_End_Right'
-                    finished_signal = request_2_signal[finished_msg]
-                    t_track_l = threading.Thread(target=multithread_func.request_right_mask,
-                                                 name='request_right_mask', args=(socks[0], finished_signal))
-                    t_track_l.start()
+
+                # # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< mask left >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
+                # elif request == 'Mask_Start_Image_Xml_Left':
+                #     finished_msg = 'Mask_End_Left'
+                #     finished_signal = request_2_signal[finished_msg]
+                #     t_track_l = threading.Thread(target=multithread_func.mask_start_image_xml_left,
+                #                                  name='mask_start_image_xml_left', args=(socks[0], finished_signal))
+                #     t_track_l.start()
+                # elif request == 'Mask_Request_Left':
+                #     finished_msg = 'Mask_End_Left'
+                #     finished_signal = request_2_signal[finished_msg]
+                #     t_track_l = threading.Thread(target=multithread_func.request_left_mask,
+                #                                  name='request_left_mask', args=(socks[0], finished_signal))
+                #     t_track_l.start()
+                #
+                # # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< mask right >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
+                # elif request == 'Mask_Start_Image_Xml_Right':
+                #     finished_msg = 'Mask_End_Right'
+                #     finished_signal = request_2_signal[finished_msg]
+                #     t_track_l = threading.Thread(target=multithread_func.mask_start_image_xml_right,
+                #                                  name='mask_start_image_xml_right', args=(socks[0], finished_signal))
+                #     t_track_l.start()
+                # elif request == 'Mask_Request_Right':
+                #     finished_msg = 'Mask_End_Right'
+                #     finished_signal = request_2_signal[finished_msg]
+                #     t_track_l = threading.Thread(target=multithread_func.request_right_mask,
+                #                                  name='request_right_mask', args=(socks[0], finished_signal))
+                #     t_track_l.start()
                 else:
                     warnings.warn('Invalid request')
 
