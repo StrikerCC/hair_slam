@@ -80,7 +80,8 @@ class Tracker:
         self.pts_first = None
         self.feats_first = None
 
-        self.rois_first = []
+        self.rois_in_first_frame = []
+        self.masks_in_first_frame = []
         self.tf_first_2_new = None
         self.flag_debug = True
 
@@ -92,7 +93,7 @@ class Tracker:
             warnings.warn('tracking receive empty img')
             return
         '''rois has nothing to track'''
-        if len(self.rois_first) and (rois_new is None or len(rois_new) == 0):
+        if len(self.rois_in_first_frame) and (rois_new is None or len(rois_new) == 0):
             warnings.warn('tracking has no rois')
             return
 
@@ -128,14 +129,32 @@ class Tracker:
 
             '''update rois to first'''
             for i_roi, roi_new in enumerate(rois_new):
-                self.rois_first.append(slam_lib.mapping.transform_pt_2d(np.linalg.inv(tf), roi_new))
+                self.rois_in_first_frame.append(slam_lib.mapping.transform_pt_2d(np.linalg.inv(tf), roi_new))
         return
 
     def get_rois(self):
         if not self.track_successful:
             return []
         rois_output = []
-        for roi in self.rois_first:
+        for roi in self.rois_in_first_frame:
+            rois_output.append(slam_lib.mapping.transform_pt_2d(self.tf_first_2_new, roi).astype(int).tolist())
+        return rois_output
+
+    def push_rois_2_masks(self, ids):
+        if ids is None or len(ids) == 0:
+            print(self.__class__, ' push_rois_2_masks, get empty ids to push rois to masks')
+            return
+        for index in ids:
+            if index < 0 or index >= len(self.rois_in_first_frame):
+                print('index', index, 'out of range for rois, rois has', len(self.rois_in_first_frame), 'ele')
+            self.masks_in_first_frame.append(self.rois_in_first_frame[index])
+        return
+
+    def get_masks(self):
+        if not self.track_successful:
+            return []
+        rois_output = []
+        for roi in self.masks_in_first_frame:
             rois_output.append(slam_lib.mapping.transform_pt_2d(self.tf_first_2_new, roi).astype(int).tolist())
         return rois_output
 

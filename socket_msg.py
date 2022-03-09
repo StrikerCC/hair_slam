@@ -7,18 +7,23 @@ signal_2_requests_dic = {
     "20": 'Track_Start_New_Image_Xml_Left',
     "21": "Track_Start_Image_Left",
     "22": 'Track_End_Xml_Left',
+    "23": 'Push_Mask_Xml_Left',
+    "24": 'Peek_Mask_Xml_Left',
 
     "30": 'Track_Start_New_Image_Xml_Right',
     "31": 'Track_Start_Image_Right',
     "32": 'Track_End_Xml_Right',
+    "33": 'Push_Mask_Xml_Right',
+    "34": 'Peek_Mask_Xml_Right',
 
-    "40": 'Mask_Start_Image_Xml_Left',
-    "41": 'Mask_End_Left',
-    "42": 'Mask_Request_Left',
-
-    "50": 'Mask_Start_Image_Xml_Right',
-    "51": 'Mask_End_Right',
-    "52": 'Mask_Request_Right'}
+    # "40": 'Mask_Start_Image_Xml_Left',
+    # "41": 'Mask_End_Left',
+    # "42": 'Mask_Request_Left',
+    #
+    # "50": 'Mask_Start_Image_Xml_Right',
+    # "51": 'Mask_End_Right',
+    # "52": 'Mask_Request_Right'
+}
 
 requests_2_signal_dic = {}
 for key in signal_2_requests_dic.keys():
@@ -43,10 +48,10 @@ file_path_dic = {
     'Path_Xml_Track_Right':         "D:/Algorithm/Xml/Track/trackRight.xml",
     'Path_Xml_Tracked_Right':       "D:/Algorithm/Xml/Track/trackedRight.xml",
 
-    'Path_Xml_Mask_Track_Left':   "D:/Algorithm/Xml/Mask/maskLeft.xml",
+    'Path_Xml_Mask_Push_Left':   "D:/Algorithm/Xml/Mask/maskLeft.xml",
     'Path_Xml_Mask_Tracked_Left':   "D:/Algorithm/Xml/Mask/maskTrackedLeft.xml",
 
-    'Path_Xml_Mask_Track_Right':  "D:/Algorithm/Xml/Mask/maskRight.xml",
+    'Path_Xml_Mask_Push_Right':  "D:/Algorithm/Xml/Mask/maskRight.xml",
     'Path_Xml_Mask_Tracked_Right':  "D:/Algorithm/Xml/Mask/maskTrackedRight.xml",
 }
 
