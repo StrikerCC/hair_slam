@@ -98,16 +98,19 @@ def push_mask_xml_left(sock, msg_out):
     tracker = tracker_left
     '''reading data'''
     tracking_rois_2_mask_xml_path = file_path_dic['Path_Xml_Mask_Push_Left']
-    pts_updated_xml_path = file_path_dic['Path_Xml_Mask_Tracked_Left']
+    masks_updated_xml_path = file_path_dic['Path_Xml_Mask_Tracked_Left']
+    rois_updated_xml_path = file_path_dic['Path_Xml_Tracked_Left']
 
     ids = slam_lib.io.xml_2_ids(tracking_rois_2_mask_xml_path)
 
     '''exec tracking'''
-    tracker.push_rois_2_masks(ids)
+    tracker.move_rois_2_masks(ids)
     masks_updated = tracker.get_masks()
+    rois_updated = tracker.get_rois()
 
     '''send finish signal'''
-    slam_lib.io.rois_2_xml(masks_updated, pts_updated_xml_path)
+    slam_lib.io.rois_2_xml(masks_updated, masks_updated_xml_path)
+    slam_lib.io.rois_2_xml(rois_updated, rois_updated_xml_path)
     send_msg(sock, msg_out)
     print("out >>>>>>>>>>>>>>>>>>>>>>>>>", msg_out, '->', sock)
     return True
@@ -178,16 +181,19 @@ def push_mask_xml_right(sock, msg_out):
     tracker = tracker_right
     '''reading data'''
     tracking_rois_2_mask_xml_path = file_path_dic['Path_Xml_Mask_Push_Right']
-    pts_updated_xml_path = file_path_dic['Path_Xml_Mask_Tracked_Right']
+    masks_updated_xml_path = file_path_dic['Path_Xml_Mask_Tracked_Right']
+    rois_updated_xml_path = file_path_dic['Path_Xml_Tracked_Right']
 
     ids = slam_lib.io.xml_2_ids(tracking_rois_2_mask_xml_path)
 
     '''exec tracking'''
-    tracker.push_rois_2_masks(ids)
+    tracker.move_rois_2_masks(ids)
     masks_updated = tracker.get_masks()
+    rois_updated = tracker.get_rois()
 
     '''send finish signal'''
-    slam_lib.io.rois_2_xml(masks_updated, pts_updated_xml_path)
+    slam_lib.io.rois_2_xml(masks_updated, masks_updated_xml_path)
+    slam_lib.io.rois_2_xml(rois_updated, rois_updated_xml_path)
     send_msg(sock, msg_out)
     print("out >>>>>>>>>>>>>>>>>>>>>>>>>", msg_out, '->', sock)
     return True
