@@ -1,9 +1,4 @@
-import cv2
-
-import slam_lib.format
-import slam_lib.feature
-import socket_msg
-import tracking_roi
+from network import socket_msg
 import threading
 import multithread_func
 

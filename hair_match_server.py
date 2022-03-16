@@ -1,11 +1,9 @@
 import socket
 import warnings
-import xml
 import sys
+import struct
 
-import cv2
-
-import socket_msg
+from network import socket_msg
 
 import threading
 
@@ -22,6 +20,10 @@ socks = []
 '''signal to functionality mapping'''
 signal_2_request = socket_msg.signal_2_requests_dic
 request_2_signal = socket_msg.requests_2_signal_dic
+
+
+def receive():
+    return
 
 
 def start_tcp_server(ip, port):
@@ -63,6 +65,7 @@ def start_tcp_server(ip, port):
 
     msg_left_over = ''
     while True:
+        '''listen to client'''
         msg = client.recv(10)
         len_msg = 2
         msg_des_string = msg_left_over + msg.decode('utf-8')
@@ -75,6 +78,30 @@ def start_tcp_server(ip, port):
         for i in range(num_msg):
             msg_des.append(msg_des_string[i*len_msg:i*len_msg+len_msg])
         print('heard', msg_des, 'from', ip, 'at', port)
+
+        ######################################
+        # size = client.recv(4)
+        # if len(size) == 4:
+        #     # 数据长度
+        #     msgLen = struct.unpack("!I", size)[0]
+        #     # 数据类型
+        #     typeByte = client.recv(4)
+        #     type = struct.unpack("!I", typeByte)[0]
+        #     print("type = ", type)
+        #     if type == 1:
+        #         receive_len = 0
+        #
+        #         while 1:
+        #             body = client.recv(msgLen)
+        #             receive_len = len(body)
+        #             if (receive_len < msgLen):
+        #                 msgLen = msgLen - receive_len
+        #             else:
+        #                 print("receive over")
+        #                 break
+        # print('heard', msg_des, 'from', ip, 'at', port)
+
+        ######################################
 
         for msg_de in msg_des:
             print('heard', msg_de, 'from', ip, 'at', port)
@@ -183,6 +210,7 @@ def start_tcp_server(ip, port):
 
             print("###############################")
 
+
 # def send_msg(msg):
 #     conn = socks[0]
 #     msg = ("%d" % msg)
@@ -197,6 +225,18 @@ def closeSock():
     conn = socks[0]
     conn.close()
     sock.close()
+
+
+def send_msg_(msg, type):
+    conn = socks[0]
+    print('msg', msg, len(msg))
+    length = struct.pack('!I', len(msg))
+    msgtype = struct.pack('!I', type)
+    msg_complete = length + msgtype + msg
+    conn.send(msg_complete)
+    # conn.send(length)
+    # conn.send(msgtype)
+    # conn.send(msg)
 
 
 def send_msg(sock, msg):

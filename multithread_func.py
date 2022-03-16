@@ -3,7 +3,7 @@ import cv2
 import slam_lib.io
 import hair_match_superglue
 import tracking_roi
-import socket_msg
+from network import socket_msg
 from hair_match_server import send_msg
 
 

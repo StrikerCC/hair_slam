@@ -1,5 +1,7 @@
 """signal to functionality mapping"""
 
+
+'''<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< network command >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
 signal_2_requests_dic = {
     "00": 'Match_Start_Image_Xml',
     '01': "Match_End_Xml",
@@ -24,13 +26,26 @@ signal_2_requests_dic = {
     # "51": 'Mask_End_Right',
     # "52": 'Mask_Request_Right'
 }
-
 requests_2_signal_dic = {}
 for key in signal_2_requests_dic.keys():
     value = signal_2_requests_dic[key]
     requests_2_signal_dic[value] = key
 
 
+'''<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< network data >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
+signal_2_data_type = {
+    '1': 'img',
+    '2': 'str',
+    '3': '1d_list',
+    '4': '2d_list',
+}
+data_type_2_signal_dic = {}
+for key in signal_2_requests_dic.keys():
+    value = signal_2_requests_dic[key]
+    data_type_2_signal_dic[value] = key
+
+
+'''<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< local file >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
 file_path_dic = {
     'Path_Picture_Match_Left':    "D:/Algorithm/Pic/matchLeft.jpg",
     'Path_Picture_Match_Right':    "D:/Algorithm/Pic/matchRight.jpg",
@@ -54,19 +69,5 @@ file_path_dic = {
     'Path_Xml_Mask_Push_Right':  "D:/Algorithm/Xml/Mask/maskRight.xml",
     'Path_Xml_Mask_Tracked_Right':  "D:/Algorithm/Xml/Mask/maskTrackedRight.xml",
 }
-
-
-# file_path_dic = {
-#     'Path_Picture_Left':    "./Algorithm/Pic/left.jpg",
-#     'Path_Picture_Right':   "./Algorithm/Pic/right.jpg",
-#     'Path_Xml_Match_Left':  "./Algorithm/Xml/Match/matchLeft.xml",
-#     'Path_Xml_Match_Right': "./Algorithm/Xml/Match/matchRight.xml",
-#     'Path_Xml_Match_Id':    "./Algorithm/Xml/Match/matchId.xml",
-#
-#     'Path_Xml_Track_Left':  "D:/Algorithm/Xml/Track/trackLeft.xml",
-#     'Path_Xml_Track_Right': "D:/Algorithm/Xml/Track/trackRight.xml",
-#     'Path_Xml_Mask_Left':   "D:/Algorithm/Xml/Mask/maskLeft.xml",
-#     'Path_Xml_Mask_Right':  "D:/Algorithm/Xml/Mask/maskRight.xml",
-# }
 
 xml_coordinates_decimal_precision = 3
