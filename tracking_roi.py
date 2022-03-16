@@ -85,18 +85,21 @@ class Tracker:
         self.tf_first_2_new = None
         self.flag_debug = True
 
+        self.lock = threading.Lock()
+
     def track(self, img, rois_new=None):
         """
         """
         '''no new img, no tracking'''
         if img is None or len(img) == 0:
-            warnings.warn('tracking receive empty img')
+            print('tracking receive empty img')
             return
         '''rois has nothing to track'''
-        if len(self.rois_in_first_frame) and (rois_new is None or len(rois_new) == 0):
-            warnings.warn('tracking has no rois')
+        if len(self.rois_in_first_frame) == 0 and (rois_new is None or len(rois_new) == 0):
+            print('tracking has no rois')
             return
 
+        print(self.__class__, 'track get new img shape', img.shape, ', new rois', rois_new)
         if rois_new is None:
             rois_new = []
         for i in range(len(rois_new)):
@@ -119,43 +122,73 @@ class Tracker:
                 self.tf_first_2_new = tf
 
         else:
+            print(self.__class__, ' track initialized with img shape', img.shape, ', # new rois', len(rois_new))
             self.frame_first = img
             self.track_successful = True
             self.tf_first_2_new = tf
 
         '''update all roi and last frame'''
         if self.track_successful:
+            print(self.__class__, ' track successful with img shape', img.shape, ', # new rois', len(rois_new))
+
             '''update last data'''
 
             '''update rois to first'''
+
+            '''lock rois'''
+            self.lock.acquire()
             for i_roi, roi_new in enumerate(rois_new):
                 self.rois_in_first_frame.append(slam_lib.mapping.transform_pt_2d(np.linalg.inv(tf), roi_new))
+            self.lock.release()
         return
 
     def get_rois(self):
         if not self.track_successful:
             return []
         rois_output = []
+
+        self.lock.acquire()
         for roi in self.rois_in_first_frame:
             rois_output.append(slam_lib.mapping.transform_pt_2d(self.tf_first_2_new, roi).astype(int).tolist())
+        self.lock.release()
+
         return rois_output
 
-    def push_rois_2_masks(self, ids):
+    def move_rois_2_masks(self, ids):
         if ids is None or len(ids) == 0:
             print(self.__class__, ' push_rois_2_masks, get empty ids to push rois to masks')
             return
+
+        '''lock rois and masks'''
+        self.lock.acquire()
+
         for index in ids:
             if index < 0 or index >= len(self.rois_in_first_frame):
                 print('index', index, 'out of range for rois, rois has', len(self.rois_in_first_frame), 'ele')
-            self.masks_in_first_frame.append(self.rois_in_first_frame[index])
+            else:
+                self.masks_in_first_frame.append(self.rois_in_first_frame[index])
+
+        for index in ids:
+            if index < 0 or index >= len(self.rois_in_first_frame):
+                print('index', index, 'out of range for rois, rois has', len(self.rois_in_first_frame), 'ele')
+            else:
+                self.rois_in_first_frame.pop(index)
+
+        self.lock.release()
         return
 
     def get_masks(self):
         if not self.track_successful:
             return []
         rois_output = []
+
+        print('get_masks locking')
+        self.lock.acquire()
         for roi in self.masks_in_first_frame:
             rois_output.append(slam_lib.mapping.transform_pt_2d(self.tf_first_2_new, roi).astype(int).tolist())
+        self.lock.release()
+        print('get_masks release')
+
         return rois_output
 
 

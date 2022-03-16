@@ -136,14 +136,14 @@ def start_tcp_server(ip, port):
 
                 # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< mask left >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
                 elif request == 'Push_Mask_Xml_Left':
-                    finished_msg = 'Track_End_Xml_Left'
+                    finished_msg = 'Mask_End_Left'
                     finished_signal = request_2_signal[finished_msg]
                     t_track_l = threading.Thread(target=multithread_func.push_mask_xml_left, name='push_mask_xml_left',
                                                  args=(socks[0], finished_signal))
                     t_track_l.start()
 
                 elif request == 'Peek_Mask_Xml_Left':
-                    finished_msg = 'Track_End_Xml_Left'
+                    finished_msg = 'Mask_End_Left'
                     finished_signal = request_2_signal[finished_msg]
                     t_track_l = threading.Thread(target=multithread_func.peek_mask_xml_left, name='peek_mask_xml_left',
                                                  args=(socks[0], finished_signal))
@@ -165,14 +165,14 @@ def start_tcp_server(ip, port):
 
                 # ''' <<<<<<<<<<<<<<<<<<<<<<<<<<<< mask right >>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
                 elif request == 'Push_Mask_Xml_Right':
-                    finished_msg = 'Track_End_Xml_Right'
+                    finished_msg = 'Mask_End_Right'
                     finished_signal = request_2_signal[finished_msg]
                     t_track_l = threading.Thread(target=multithread_func.push_mask_xml_right, name='push_mask_xml_right',
                                                  args=(socks[0], finished_signal))
                     t_track_l.start()
 
-                elif request == 'Peek_Mask_Xml_Left':
-                    finished_msg = 'Track_End_Xml_Left'
+                elif request == 'Peek_Mask_Xml_Right':
+                    finished_msg = 'Mask_End_Right'
                     finished_signal = request_2_signal[finished_msg]
                     t_track_l = threading.Thread(target=multithread_func.peek_mask_xml_right, name='peek_mask_xml_right',
                                                  args=(socks[0], finished_signal))
