@@ -193,7 +193,6 @@ class TcpServerGeneral(TcpServer):
         self._sock.send(msg_type)
         self._sock.send(msg_data)
         return
-
     '''>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> getter'''
 
     '''<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< threading implementation'''
@@ -230,7 +229,6 @@ class TcpServerGeneral(TcpServer):
                                    'data': msg_data})
                 self.lock.release()     # unlock self._msg here
         return True
-
     ''' threading implementation >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
 
 
