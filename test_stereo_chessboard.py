@@ -18,7 +18,6 @@ from slam_lib.camera.calibration import stereo_calibrate
 import slam_lib.geometry
 import slam_lib.mapping
 import slam_lib.vis
-import homo
 
 
 def get_stereo_calibration(square_size, checkboard_size, data_stereo, calibration_parameter_saving_file_path,
