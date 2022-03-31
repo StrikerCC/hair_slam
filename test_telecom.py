@@ -2,7 +2,7 @@ import copy
 
 import cv2
 
-from network.telecom_socket import TcpClient, TcpClientGeneral
+from network.telecom_socket import TcpClient, TcpClientGeneral, MsgGeneral
 
 
 def test():
@@ -22,7 +22,20 @@ def test():
 
 
 def test_thread():
+
+    msg = MsgGeneral()
+    img_filepath = r'./data/20210902153900.png'
+    img = cv2.imread(img_filepath)
+    content = {
+        'type': 1,
+        'id': '0' * 20,
+        'command': '0000',
+        'data': img,
+    }
+    msg.content = content
+
     client = TcpClientGeneral('127.0.0.1', 6000)
+    client.add_msgs([msg])
     print(client.status())
     client.start_thread_listener_and_speaker_with_vision_sensor()
 
@@ -32,8 +45,8 @@ def test_thread():
             print(client.status())
             msgs = client.peek_msg()
             for msg in msgs:
-                img = msg.content['img']
-                cv2.imshow('img', img)
+                img = msg.content['data']
+                cv2.imshow('data', img)
                 cv2.waitKey(0)
             len_old = len(client.peek_msg())
 

@@ -14,8 +14,8 @@ class TcpNode:
     def __init__(self, ip, port):
         """"""
         '''socket setup'''
-        self._SEND_BUF_SIZE = 256
-        self._RECV_BUF_SIZE = 256
+        self._SEND_BUF_SIZE = 256256
+        self._RECV_BUF_SIZE = 256256
 
         '''tele setup'''
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -108,7 +108,6 @@ class TcpNode:
     ''' status getter >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
 
     '''<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< utils'''
-
     def speak(self, msgs):
         target = self._sock_clients[0]
         if not isinstance(msgs, list) and not isinstance(msgs, tuple):
@@ -116,18 +115,19 @@ class TcpNode:
         for msg in msgs:
             '''cast to Msg class'''
             if not isinstance(msg, self.msg_class):
-                msg_bytes = self.msg_class().encoding_data(msg)
+                msgs_bytes = self.msg_class().encoding_data(msg)
             else:
-                msg_bytes = msg.encoding_content()  # make anything into transportable
+                msgs_bytes = msg.encoding_content()  # make anything into transportable
 
-            self.lock.acquire()
+            if msgs_bytes is not None:
+                self.lock.acquire()
 
-            if not isinstance(msg_bytes, list) and not isinstance(msg_bytes, tuple):
-                msg_bytes = [msg_bytes]
-            for msg_bytes_ in msg_bytes:
-                target.send(msg_bytes_)
+                if not isinstance(msgs_bytes, list) and not isinstance(msgs_bytes, tuple):
+                    msgs_bytes = [msgs_bytes]
+                for msg_bytes_ in msgs_bytes:
+                    target.send(msg_bytes_)
 
-            self.lock.release()
+                self.lock.release()
         return True
 
     def listen(self):
@@ -149,9 +149,18 @@ class TcpNode:
         self.lock.release()  # unlock self._msg here
         return msgs
 
+    def add_msgs(self, msgs):
+        if not isinstance(msgs, list) and not isinstance(msgs, tuple):
+            msgs = [msgs]
+        for msg in msgs:
+            assert isinstance(msg, self.msg_class), "Expect " + str(self.msg_class) + ' get ' + str(msg.__class__) + ' insteaded'
+        self.lock.acquire()
+        self._msgs += msgs
+        self.lock.release()
+
     def _keep_recv(self, length):
         time_0 = time.time()
-        num_loop = 100000000
+        num_loop = 10000
         client = self._sock_clients[0]
         bytes_received = b''
         length_left = length
@@ -419,7 +428,10 @@ class MsgGeneral(Msg):
                 msg_len = len(msg_data)
             msg_len = super().encoding_data(msg_len)
 
-            return msg_len, msg_type, msg_id, msg_command, msg_data  # type, len, id, data
+            if len(msg_len) > 0 and len(msg_type) > 0 and len(msg_id) and len(msg_command) and len(msg_data):
+                return msg_len, msg_type, msg_id, msg_command, msg_data  # type, len, id, data
+            else:
+                return None
         else:
             raise TypeError('Unexpect type to decode: ' + str(type(data_node)))
 
@@ -569,31 +581,24 @@ def test_data_com():
 def test_data_com_thread():
     node = TcpServerGeneral('127.0.0.1', 6000)
 
-    msg = MsgGeneral()
-    img_filepath = r'../data/20210902153900.png'
-    img = cv2.imread(img_filepath)
-    content = {
-        'type': 1,
-        'id': '0' * 20,
-        'command': '0000',
-        'data': img,
-    }
-    msg.content = content
-    node._msgs.append(msg)
     print(node.status())
     node.start_thread_listener_and_speaker_with_vision_sensor()
 
-    len_old = -1
     while True:
-        if len(node.peek_msg()) != len_old:
+        if len(node.peek_msg()) > 0:
             print(node.status())
+
+            '''receive'''
             msgs = node.peek_msg()
             for msg in msgs:
                 img = msg.content['data']
                 print(img.shape)
                 cv2.imshow('data', img)
                 cv2.waitKey(0)
-            len_old = len(node.peek_msg())
+
+            '''send back'''
+            # for msg in msgs:
+            node.add_msgs(msgs)
 
     # node.speak(msgs)
     # node.speak(img)
