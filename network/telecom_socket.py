@@ -1,3 +1,5 @@
+# coding=utf-8
+
 import socket
 import sys
 import threading
@@ -8,6 +10,7 @@ import warnings
 import cv2
 import numpy as np
 import network.socket_msg
+import codecs
 
 
 class TcpNode:
@@ -80,9 +83,9 @@ class TcpNode:
             if not self.is_connected:
                 break
             # self.lock.acquire()  # lock self._msg here
-            msg = self.pop_msg()
+            msgs = self.pop_msgs()
             # self.lock.release()  # unlock self._msg here
-            self.speak(msg)
+            self.speak(msgs)
         return True
 
     ''' threading implementation >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
@@ -142,7 +145,7 @@ class TcpNode:
             self._msgs.append(msg)
             self.lock.release()  # unlock self._msg here
 
-    def pop_msg(self):
+    def pop_msgs(self):
         self.lock.acquire()  # lock self._msg here
         msgs = self._msgs
         self._msgs = []
@@ -174,7 +177,7 @@ class TcpNode:
         # warnings.warn(
         #     'cannot receive complete bytes from buffer,' + ' loops, expect ' + str(length) + ' bytes, but got ' + str(
         #         len(bytes_received)) + ' after ' + str(num_loop) + ' recv calling')
-        print('_keep_recv takes', time.time() - time_0)
+        # print('_keep_recv takes', time.time() - time_0)
         return bytes_received
 
     ''' utils >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
@@ -360,7 +363,10 @@ class MsgGeneral(Msg):
     def set_data_from_bytes(self, bytes_data):
         """receive msg data"""
         if len(bytes_data) > 0:
-            msg_data_array = self._decoding_data(bytes_data)
+
+            # msg_data_array = self._decoding_data(bytes_data)
+
+            msg_data_array = bytes_data
             self.content['data'] = msg_data_array
 
     def _decoding_msg_prefix(self, data_from_buffer):
@@ -382,21 +388,26 @@ class MsgGeneral(Msg):
 
             msg_data_len = struct.unpack("!I", msg_data_len)[0]
             msg_data_type = struct.unpack("!I", msg_data_type)[0]
-            msg_data_id = msg_data_id.decode('utf-8')
-            msg_command = msg_command.decode('utf-8')
+
+            msg_data_id.decode("UTF-8", "ignore")
+            msg_data_id = codecs.decode(msg_data_id, 'UTF-8')
+            msg_command = codecs.decode(msg_command, 'UTF-8')
+
+            # msg_data_id = msg_data_id.decode('utf-8')
+            # msg_command = msg_command.decode('utf-8')
 
             #           int           int           str          str
             return msg_data_len, msg_data_type, msg_data_id, msg_command  # type, len, id, data
 
     def _decoding_data(self, data_from_buffer):
-        img_size = (493, 853, 3)        
+        # img_size = (493, 853, 3)
+        # img_size = (2064, 3088, 3)
+        # img_array = np.frombuffer(data_from_buffer, dtype=np.uint8)
+        # assert len(img_array) == np.prod(img_size), str(len(img_array)) + ' != ' + str(np.prod(img_size))
+        # img = img_array.reshape(img_size)
+
         img_array = np.frombuffer(data_from_buffer, dtype=np.uint8)
-        assert len(img_array) == np.prod(img_size)
-        img = img_array.reshape(img_size)
-
-        # return np.frombuffer(data_from_buffer, dtype=np.uint8).astype(np.uint8)
-        # img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-
+        img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
         return img
 
     def encoding_content(self):
@@ -478,53 +489,63 @@ class TcpServerGeneral(TcpServer):
         """"""
         '''receive msg info'''
         msg = self.msg_class()
+        time_0 = time.time()
+
         bytes_pre_info_received = self._keep_recv(msg.len_msg_pre_info_2_receive)
         if len(bytes_pre_info_received) > 0:
             msg_data_len = msg.set_pre_info_from_bytes(bytes_pre_info_received)
+
+            print('ask data length of ', msg_data_len)
+
             bytes_data_received = self._keep_recv(msg_data_len)
+
+            print('receive data length of ', len(bytes_data_received))
+
             msg.set_data_from_bytes(bytes_data_received)
             if msg.content is not None:
                 '''record msg'''
                 self.lock.acquire()  # lock self._msg here
                 self._msgs.append(msg)
                 self.lock.release()  # unlock self._msg here
+            print('listen a msg takes', time.time() - time_0)
+
     ''' threading implementation >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
 
     '''<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< utils'''
     ''' utils >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
 
 
-class TcpClientGeneral(TcpClient):
-    def __init__(self, ip, port):
-        """"""
-        super().__init__(ip, port)
-        self.msg_class = MsgGeneral
-
-    def start_thread_listener_and_speaker_with_vision_sensor(self):
-        """"""
-        t_listener = threading.Thread(target=self._listen_looping)  # start a thread to listen
-        t_listener.start()
-        t_speaker = threading.Thread(target=self._speak_looping)  # start a thread to listen
-        t_speaker.start()
-        return True
-
-    def listen(self):
-        """"""
-        msg = self.msg_class()
-
-        '''receive msg pre info'''
-        bytes_pre_info_received = self._keep_recv(msg.len_msg_pre_info_2_receive)
-        msg_data_len = msg.set_pre_info_from_bytes(bytes_pre_info_received)
-
-        '''receive msg data info'''
-        bytes_data_received = self._keep_recv(msg_data_len)
-        msg.set_data_from_bytes(bytes_data_received)
-
-        if msg.content is not None:
-            '''record msg'''
-            self.lock.acquire()  # lock self._msg here
-            self._msgs.append(msg)
-            self.lock.release()  # unlock self._msg here
+# class TcpClientGeneral(TcpClient):
+#     def __init__(self, ip, port):
+#         """"""
+#         super().__init__(ip, port)
+#         self.msg_class = MsgGeneral
+#
+#     def start_thread_listener_and_speaker_with_vision_sensor(self):
+#         """"""
+#         t_listener = threading.Thread(target=self._listen_looping)  # start a thread to listen
+#         t_listener.start()
+#         t_speaker = threading.Thread(target=self._speak_looping)  # start a thread to listen
+#         t_speaker.start()
+#         return True
+#
+#     def listen(self):
+#         """"""
+#         msg = self.msg_class()
+#
+#         '''receive msg pre info'''
+#         bytes_pre_info_received = self._keep_recv(msg.len_msg_pre_info_2_receive)
+#         msg_data_len = msg.set_pre_info_from_bytes(bytes_pre_info_received)
+#
+#         '''receive msg data info'''
+#         bytes_data_received = self._keep_recv(msg_data_len)
+#         msg.set_data_from_bytes(bytes_data_received)
+#
+#         if msg.content is not None:
+#             '''record msg'''
+#             self.lock.acquire()  # lock self._msg here
+#             self._msgs.append(msg)
+#             self.lock.release()  # unlock self._msg here
 
 
 def test_command():
@@ -538,7 +559,7 @@ def test_command():
             break
         if listener.heard_something():
             print('before pop', listener.status())
-            msg = listener.pop_msg()
+            msg = listener.pop_msgs()
             print(msg)
             print('after pop', listener.status())
             count += 1
@@ -554,7 +575,7 @@ def test_command():
             break
         if listener.heard_something():
             print('before pop', listener.status())
-            msg = listener.pop_msg()
+            msg = listener.pop_msgs()
             print(msg)
             print('after pop', listener.status())
             count += 1
