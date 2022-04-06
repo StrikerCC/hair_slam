@@ -54,7 +54,7 @@ from network.telecom_socket import TcpClient, TcpServerGeneral, MsgGeneral
 #             len_old = len(client.peek_msg())
 
 
-def test_server():
+def test_as_server():
     node = TcpServerGeneral('127.0.0.1', 7000)
 
     print(node.status())
@@ -87,7 +87,7 @@ def test_server():
 
 def main():
     # test_thread()
-    test_server()
+    test_as_server()
 
 
 if __name__ == '__main__':

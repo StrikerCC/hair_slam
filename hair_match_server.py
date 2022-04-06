@@ -18,8 +18,8 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 socks = []
 
 '''signal to functionality mapping'''
-signal_2_request = socket_msg.signal_2_requests_dic
-request_2_signal = socket_msg.requests_2_signal_dic
+signal_2_request = socket_msg.msg_command_2_requests_dic
+request_2_signal = socket_msg.requests_2_msg_command_dic
 
 
 def receive():
