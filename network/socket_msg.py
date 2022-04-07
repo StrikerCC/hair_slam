@@ -26,7 +26,7 @@ import cv2
 
 
 def encoding_1d_array(arr):
-    assert isinstance(arr, np.ndarray) and len(arr.shape) == 1
+    assert isinstance(arr, np.ndarray) and len(arr.shape) == 1, str(type(arr)) + ' shape is ' + str(arr.shape)
     arr_str = ''
     # np.array2string(arr)
     for ele in arr:
@@ -267,7 +267,8 @@ class MsgGeneral(Msg):
 
             msg_data_id = msg_data_id.decode('utf-8')
 
-            msg_command = msg_command.decode('utf-8')
+            msg_command = struct.unpack("!I", msg_command)[0]
+            msg_command = str(msg_command)
             msg_command = self.msg_command_2_requests_dic[msg_command]
 
             #           int           int           str          str
@@ -335,7 +336,7 @@ class MsgGeneral(Msg):
 
             msg_type = self.data_type_2_msg_type_id[msg_type]
             msg_id = msg_id
-            msg_command = self.requests_2_msg_command_dic[msg_command]
+            msg_command = int(self.requests_2_msg_command_dic[msg_command])
 
             msg_type = super().encoding_msg_implement(msg_type)
             msg_id = super().encoding_msg_implement(msg_id)

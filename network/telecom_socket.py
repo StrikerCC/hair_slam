@@ -28,7 +28,7 @@ class TcpNode:
         '''init sock'''
         self._sock_clients = []
         server_address = (ip, port)
-        print("targeting ip %s, port %s" % server_address)
+        print("TcpNode targeting ip %s, port %s" % server_address)
 
         '''status init'''
         self.is_connected = False
@@ -188,7 +188,7 @@ class TcpServer(TcpNode):
         '''socket setup'''
         super().__init__(ip, port)
         server_address = (ip, port)
-        print("starting listen on ip %s, port %s" % server_address)
+        print("TcpServer starting listen on ip %s, port %s" % server_address)
         self._socket.bind(server_address)  # bind port
 
     '''<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< setter'''
@@ -327,8 +327,6 @@ class TcpServerGeneral(TcpNodeGeneral, TcpServer):
     def __init__(self, ip, port):
         server_address = (ip, port)
         super().__init__(ip, port)
-        print("starting listen on ip %s, port %s" % server_address)
-        # self._socket.bind(server_address)  # bind port
 
     '''<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< setter'''
     def start_thread_listener_and_speaker_with_vision_sensor(self):
@@ -447,14 +445,15 @@ def test_as_client():
     # f = open(img_filepath, 'rb')
     # img_bytes = f.read()
 
-    img = cv2.imread(img_filepath)
+    # img = cv2.imread(img_filepath)
+    arr = np.arange(0, 10)
     content = {
-        'type': 1,
+        'type': '1d_array',
         'id': '0' * 20,
-        'command': '0000',
-        'data': img,
+        'command': 'Track_Start_New_Image_Xml_Left',
     }
     msg.prefix_dict_ = content
+    msg.data_ = arr
 
     node = TcpClientGeneral('127.0.0.1', 7000)
     node.add_msgs([msg])
@@ -469,14 +468,18 @@ def test_as_client():
 
             '''receive'''
             msgs = node.pop_msgs()
+
+            # print(msgs[0])
             for msg in msgs:
-                img_bytes = msg.prefix_dict_['data']
-                img_array = np.frombuffer(img_bytes, dtype=np.uint8)
-                # img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-                img = img_array.reshape((493, 853, 3))
-                print(img.shape)
-                cv2.imshow('data', img)
-                cv2.waitKey(0)
+                # img_bytes = msg.prefix_dict_['data']
+                # img_array = np.frombuffer(img_bytes, dtype=np.uint8)
+                # # img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+                # img = img_array.reshape((493, 853, 3))
+                # print(img.shape)
+                # cv2.imshow('data', img)
+                # cv2.waitKey(0)
+                arr = msg.data_
+                print(arr)
 
             '''send back'''
             node.add_msgs(msgs)
