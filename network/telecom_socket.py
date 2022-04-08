@@ -124,6 +124,8 @@ class TcpNode:
             if msgs_bytes is not None:
                 self.lock.acquire()
 
+                print(msg.data_)
+                print(*msgs_bytes)
                 if not isinstance(msgs_bytes, list) and not isinstance(msgs_bytes, tuple):
                     msgs_bytes = [msgs_bytes]
                 for msg_bytes_ in msgs_bytes:
@@ -294,7 +296,7 @@ class TcpNodeGeneral(TcpNode):
 
         '''msg '''
         self.msg_class = MsgGeneral
-        assert self.msg_class.len_msg_pre_info_2_receive == 32
+        assert self.msg_class.len_msg_pre_info_2_receive == 30
 
     '''<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< threading implementation'''
     def listen(self):

@@ -67,7 +67,11 @@ def test_as_server():
             '''receive'''
             msgs = node.pop_msgs()
 
-            '''saving locally'''
+            '''print locally'''
+            for msg in msgs:
+                arr = msg.data_
+                print(arr)
+
             # for msg in msgs:
             #     img = msg.content['data']
             #

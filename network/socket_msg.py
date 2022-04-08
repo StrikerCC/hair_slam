@@ -156,7 +156,7 @@ class MsgGeneral(Msg):
     msg_len_len = 4
     msg_type_len = 4
     msg_id_len = 20
-    msg_command_len = 4
+    msg_command_len = 2
     msg_data_len = 0
     len_msg_pre_info_2_receive = msg_len_len + msg_type_len + msg_id_len + msg_command_len
 
@@ -166,10 +166,10 @@ class MsgGeneral(Msg):
         '''data type mapping'''
         self.msg_type_id_2_data_type = {
             1: 'img',
-            2: '1d_array',
-            3: '2d_array',
-            4: '3d_array',
-            5: 'str',
+            2: 'str',
+            3: '1d_array',
+            4: '2d_array',
+            5: '3d_array',
         }
         self.data_type_2_msg_type_id = {}
         for key in self.msg_type_id_2_data_type.keys():
@@ -254,7 +254,7 @@ class MsgGeneral(Msg):
             msg_data_type = data_from_buffer[self.msg_len_len: self.msg_len_len + self.msg_type_len]
             msg_data_id = data_from_buffer[
                           self.msg_len_len + self.msg_type_len: self.msg_len_len + self.msg_type_len + self.msg_id_len]
-            msg_command = data_from_buffer[self.msg_len_len + self.msg_type_len + self.msg_id_len:]
+            msg_command_bytes = data_from_buffer[self.msg_len_len + self.msg_type_len + self.msg_id_len:]
 
             msg_data_len = struct.unpack("!I", msg_data_len)[0]
 
@@ -267,8 +267,9 @@ class MsgGeneral(Msg):
 
             msg_data_id = msg_data_id.decode('utf-8')
 
-            msg_command = struct.unpack("!I", msg_command)[0]
-            msg_command = str(msg_command)
+            msg_command = msg_command_bytes.decode('utf-8')
+            # msg_command = struct.unpack("!I", msg_command)[0]
+            # msg_command = str(msg_command)
             msg_command = self.msg_command_2_requests_dic[msg_command]
 
             #           int           int           str          str
@@ -325,9 +326,9 @@ class MsgGeneral(Msg):
             elif self.prefix_dict_['type'] == '1d_array':
                 data_bytes = encoding_1d_array(data)
             elif self.prefix_dict_['type'] == '2d_array':
-                data_bytes = encoding_1d_array(data)
+                data_bytes = encoding_2d_array(data)
             elif self.prefix_dict_['type'] == '3d_array':
-                data_bytes = encoding_1d_array(data)
+                data_bytes = encoding_3d_array(data)
             elif self.prefix_dict_['type'] == 'str':
                 data = str(data)
                 data_bytes = data.encode('utf-8')
@@ -336,7 +337,7 @@ class MsgGeneral(Msg):
 
             msg_type = self.data_type_2_msg_type_id[msg_type]
             msg_id = msg_id
-            msg_command = int(self.requests_2_msg_command_dic[msg_command])
+            msg_command = self.requests_2_msg_command_dic[msg_command]
 
             msg_type = super().encoding_msg_implement(msg_type)
             msg_id = super().encoding_msg_implement(msg_id)
